@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<script	src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<head>
+<meta charset="utf-8">
+<title>Insert title here</title>
+<script>
+	//오늘하루 보지않음 쿠키 세팅
+    function setCookie(name, value, expiredays) {
+        var date = new Date();
+        date.setDate(date.getDate() + expiredays);
+        document.cookie = escape(name) + "=" + escape(value) + "; expires=" + date.toGMTString();
+    }
+	// 체크하고 닫을시 쿠키 생성 후 팝업 숨김
+    function closePopup() {
+        if (document.getElementById("check").value) {
+            setCookie("popupYN", "N", 1);
+            self.close();
+        }
+    }
+</script>
+</head>
+<body>
+    <input type="checkbox" id="check" onclick="closePopup();">
+    <br>
+     <b style="font-size: 3px">하루에 한번만 보기</b>
+</body>
+</html>
+
+

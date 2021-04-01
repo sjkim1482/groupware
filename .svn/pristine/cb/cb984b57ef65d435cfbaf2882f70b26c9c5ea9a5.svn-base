@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+
+  <typeAliases>
+  	<typeAlias type="kr.or.ddit.common.model.PageVo" alias="pageVo" />
+  	
+  	<typeAlias type="kr.or.ddit.groupware.model.EmpVo" alias="empVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.DeptVo" alias="deptVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.JobVo" alias="jobVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.CommCdVo" alias="commCdVo" />
+  	
+  	<typeAlias alias="onVo" type="kr.or.ddit.groupware.model.OnOffVo"/>
+  	<typeAlias type="kr.or.ddit.groupware.model.ScdVo" alias="scdVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.PmsVo" alias="pmsVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.PmsEmpVo" alias="pmsEmpVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.BoardCommVo" alias="boardCommVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.BoardPostFileVo" alias="boardPostFileVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.BoardPostVo" alias="boardPostVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.BoardVo" alias="boardVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.AttFileVo" alias="attFileVo" />
+  	<typeAlias type="kr.or.ddit.groupware.approval.model.AppVo" alias="appVo" />
+  	<typeAlias type="kr.or.ddit.groupware.approval.model.AppDivVo" alias="appDivVo" />
+  	<typeAlias type="kr.or.ddit.groupware.approval.model.AppFileVo" alias="appFileVo" />
+  	<typeAlias type="kr.or.ddit.groupware.approval.model.AppLineVo" alias="appLineVo" />
+  	<typeAlias type="kr.or.ddit.groupware.approval.model.AppDetDivVo" alias="appDetDivVo"/>
+  	<typeAlias type="kr.or.ddit.groupware.approval.model.PerAppLineInfoVo" alias="perAppLineInfoVo"/>
+  	<typeAlias type="kr.or.ddit.groupware.approval.model.PerAppLineVo" alias="perAppLineVo"/>
+  	
+  	<typeAlias type="kr.or.ddit.groupware.model.AttFileVo" alias="attFileVo"/>
+  	<typeAlias type="kr.or.ddit.groupware.model.PopUpVo" alias="popUpVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.PopDisVo" alias="popDisVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.VacationVo" alias="vacationVo" />
+
+  	<typeAlias type="kr.or.ddit.groupware.model.MsgVo" alias="msgVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.MsgBoxVo" alias="msgBoxVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.MsgFileVo" alias="msgFileVo" />
+  
+  	<typeAlias type="kr.or.ddit.groupware.model.MeetingVo" alias="meetingVo" />
+  	<typeAlias type="kr.or.ddit.groupware.model.MeetInfoVo" alias="meetInfoVo" />
+  	
+  </typeAliases>
+
+
+  <mappers>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/emp.xml"/>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/board.xml"/>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/popup.xml"/>
+      <mapper resource="kr/or/ddit/config/mybatis/mapper/scd.xml"/>
+      <mapper resource="kr/or/ddit/config/mybatis/mapper/pms.xml"/>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/app.xml"/>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/onoff.xml"/>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/attfile.xml"/>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/vacation.xml"/>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/msg.xml"/>
+	  <mapper resource="kr/or/ddit/config/mybatis/mapper/meeting.xml"/>
+  </mappers>
+  
+  
+</configuration>

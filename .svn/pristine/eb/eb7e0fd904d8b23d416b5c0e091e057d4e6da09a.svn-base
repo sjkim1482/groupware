@@ -1,0 +1,17 @@
+package kr.or.ddit.groupware.repository;
+
+import kr.or.ddit.groupware.model.MeetInfoVo;
+import kr.or.ddit.groupware.model.MeetingVo;
+
+public interface MeetingDaoI {
+	
+	//회의 생성
+	int registMeeting(MeetingVo meetingVo);
+	
+	//화의 참여자 등록
+	int registMeetInfo(MeetInfoVo meetInfoVo);
+	
+	//가장최근 회의 호출
+	int maxMeetingNo();
+	
+}

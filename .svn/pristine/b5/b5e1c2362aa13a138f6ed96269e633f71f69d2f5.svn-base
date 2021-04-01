@@ -1,0 +1,162 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>    
+<%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
+<script	src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+$(function(){
+	$(".work").on("click",function(){
+		//this : 클릭 이벤트가 발생한 element
+		//data- 속성명 data-userid, 속성명은 대소문자 무시하고 소문자로 인식
+		//data-userId ==>data-userid
+		var work_no = $(this).data("work_no");
+		var pms_no = $(this).data("pms_no");
+		$("#work_no").val(work_no);
+		$("#pms_no").val(pms_no);
+// 		$("#bor_no").val(bor_no);
+// 		$("#user_id").val(user_id);
+		$("#frm").submit();
+	});
+})
+</script>
+<style>
+.tAr{
+ 	text-align: right; 
+ 	padding-right: 10%; 
+	
+}
+</style>
+<form id="frm" action="${cp}/pms/workDetail">
+	<input type="hidden" id="work_no" name="work_no" value="">
+	<input type="hidden" id="pms_no" name="pms_no" value="">
+</form>
+
+
+
+<!-- 총 추정시간 표시하기  -->
+
+<div class="col-md-9">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<h3 class="panel-title">일감</h3>
+			<div class="actions pull-right">
+				<i class="fa fa-chevron-down"></i> <i class="fa fa-times"></i>
+			</div>
+		</div>
+		<div class="panel-body" style="display: block;">
+			<form class="form-horizontal" role="form">
+				<table id="example"
+					class="table table-striped table-bordered dataTable no-footer"
+					cellspacing="0" width="100%" aria-describedby="example_info"
+					style="width: 100%;">
+					<thead>
+						<tr role="row">
+							<th class="col-xs-1">글번호</th>
+							<th class="col-xs-1">상태</th>
+							<th class="col-xs-2">우선순위</th>
+							<th class="col-xs-4">제목</th>
+							<th class="col-xs-2">담당자</th>
+							<th class="col-xs-1">추정시간</th>
+						</tr>
+					</thead>
+					<tbody>
+						<c:forEach items="${pmsList}" var="pms" varStatus="loop">
+							<tr class="odd work" data-work_no="${pms.work_no }" data-pms_no="${pms.pms_no }" >
+								<td>${loop.count +(pageVo.page-1)*10}</td>
+								<td>${pms.sta_cd_nm}</td>
+								<!-- 상태 -->
+								<td>${pms.pri_order_nm}</td>
+								<!-- 우선순위 -->
+								<td>
+									<c:forEach begin="1" end="${pms.workLevel}" var="i">
+										<c:if test="${i > 1}">
+											&ensp; &ensp;
+										</c:if>
+									</c:forEach> 
+										<c:if test="${pms.workLevel > 1}">
+			                             ↳
+			                             </c:if> 
+			                     ${pms.work_nm}
+								</td>
+								<td>${pms.ko_nm}</td>
+								<td>${pms.est_time}</td>
+								<!-- 추청시간 -->
+							</tr>
+						</c:forEach>
+					</tbody>
+				</table>
+			</form>
+			<div class="row">
+			<div style="text-align: center;">
+				<div class="dataTables_paginate paging_simple_numbers"
+					id="example_paginate">
+					<ul class="pagination">
+						<li class="paginate_button previous">
+							<a href="${cp }/pms/pmsView?page=1&pageSize=${pageVo.pageSize}&pms_no=${pms_no}">Previous</a></li>
+						<c:forEach begin="1" end="${pagination}" var="i">
+						<c:choose>
+							<c:when test="${pageVo.page==i}">
+								<li class="paginate_button active">
+									<a href="${cp }/pms/pmsView?page=${pageVo.page }&pageSize=${pageVo.pageSize}&pms_no=${pms_no}">${i}</a></li>
+							</c:when>
+							<c:otherwise>
+								<li class="paginate_button " aria-controls="example" tabindex="0">
+								<a href="${cp }/pms/pmsView?page=${i }&pageSize=${pageVo.pageSize}&pms_no=${pms_no}">${i}</a></li>
+							</c:otherwise>
+						</c:choose>
+						
+						</c:forEach>
+						<li class="paginate_button next" aria-controls="example"
+							tabindex="0" id="example_next"><a href="${cp }/pms/pmsView?page=${pagination}&pageSize=${pageVo.pageSize}&pms_no=${pms_no}">Next</a></li>
+							
+					</ul>
+				</div>
+			</div>
+								<!-- 일정등록 -->
+		<form action="/pms/registPmsForm" method="get"  class="tAr pT10">
+			<input type="hidden" id="attend_emp_no" name="attend_emp_no" value="${S_USER.emp_no}">
+			<input type="hidden" id="pms_no" name="pms_no" value="${pms_no}">
+			<input type="submit" id="modifyBtn"  class="btn btn-primary btn-square" value="신규">
+		</form>
+		
+		</div>
+		</div>
+	</div>
+</div>
+
+<div class="col-md-3">
+	<div class="panel panel-default">
+		<div class="panel-heading">
+			<h3 class="panel-title">프로젝트 구성원</h3>
+			<div class="actions pull-right">
+				<i class="fa fa-chevron-down"></i> <i class="fa fa-times"></i>
+			</div>
+		</div>
+		<div class="panel-body" style="display: block; height: 355px;">
+			<form class="form-horizontal" role="form">
+				<c:forEach items="${empList}" var="emp" varStatus="loop">
+
+					<td>${emp.ko_nm}</td>
+					<c:if test="${status.count != fn:length(empList)}">
+						<br>
+					</c:if>
+				</c:forEach>
+				<!-- 구성원 프로필 이미지 -->
+				<div class="input-group" style="float: left;">
+					<div class="mailbox-attachments clearfix"
+						style="text-align: center; width: 100%;">
+						<div class="mailbox-attachment-icon has-img" id="pictureView"
+							style="border: 1px solid green; height: 150px; width: 120px; margin: 0 auto;">
+							<img id="pictureViewImg" style="width: 100%; height: 100%;" />
+						</div>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+
+
+

@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="board">
+	
+	<!-- 관리자 게시판 관리  -->	
+	<select id="selectBoard" resultType="boardVo">
+		select * from board order by bor_no
+	</select>
+	
+	<!-- 사원 게시판 메인 화면 -->
+	<select id="selectEmpBoard" resultType="boardVo" parameterType="int">
+		SELECT distinct(bor_no) bor_no, bor_nm
+		FROM board b, emp e
+		WHERE e.dept_no = b.bor_no
+		AND e.emp_no = #{emp_no}
+		OR bor_no in(-1, 50, 51)
+		ORDER BY bor_no
+	</select>
+	
+	<!-- 게시판 생성 및 수정 -->
+	<insert id="insertBoard" parameterType="boardVo">
+		insert into board values (board_seq.nextVal,#{bor_nm},#{emp_no},#{act_cd})
+	</insert>
+	
+	<!-- 게시판 비/활성화  -->
+    <update id="updateBoard" parameterType="boardVo">
+		update board set act_cd=#{act_cd} where bor_nm=#{bor_nm}
+	</update>
+	
+	<!-- 게시글 생성  -->
+	<insert id="insertPost" parameterType="boardPostVo">
+		insert into post values(post_seq.nextVal,#{title},#{cont},sysdate,0,#{emp_no},#{bor_no},#{del_cd},null)
+	</insert>
+	
+	<!-- { e.emp_no emp_no(별칭) } post, emp 테이블에 중복되는 컬럼(emp_no)이 있어서
+	 	 한정자를 붙여주고 컬럼이름은 원래 emp_no여서 별칭을 붙여준다.(이유는 vo변수에 넣어주기 위해)
+	 -->
+	 
+	 <!-- 게시글 상세보기 -->
+	<select id="postDetail" resultType="boardPostVo" parameterType="boardPostVo">
+		 select title, reg_dt, ko_nm, cont, bor_no, post_no, e.emp_no emp_no
+   		 from post p, emp e 
+   		 where p.emp_no=e.emp_no 
+   		 and post_no=#{post_no}
+	</select>
+	
+	<!-- 게시글 가장 큰 번호 - 최신글  -->
+	<select id="maxPostNo" resultType="int">
+		select Max(post_no) from post 
+	</select>
+	
+	<!-- 게시글 선택 -->
+	<select id="selectPost" parameterType="boardPostVo" resultType="boardPostVo">
+		select * from post where post_no=#{post_no}
+	</select>
+	
+	<!-- 게시글 수정 -->
+	<update id="modifyPost" parameterType="boardPostVo">
+		update post set title=#{title},cont=#{cont},reg_dt=sysdate where post_no=#{post_no}
+	</update>
+	
+	<!-- 조회수 증가 -->
+	<update id="hitsupdate" parameterType="int">
+		update post set hits = hits+1 where post_no=#{post_no}
+	</update>
+	
+	<!-- 파일등록 -->
+	<insert id="insertAttFile" parameterType="attFileVo">
+		insert into att_file values(file_seq.nextVal,#{file_nm},#{file_route},sysdate,1,#{file_size})
+	</insert>
+	
+	<insert id="insertPostFile" parameterType="boardPostFileVo">
+		insert into post_file values(#{file_no},#{post_no})
+	</insert>
+	
+	<select id="maxFileNo" resultType="int">
+		SELECT MAX(file_no) 
+		FROM att_file
+	</select>
+	
+	<select id="selectFile" resultType="attFileVo" parameterType="int">
+		SELECT *
+		FROM att_file
+		WHERE file_no = #{file_no}
+	</select>
+	
+	<select id="postFileList" resultType="int" parameterType="int">
+		SELECT file_no
+		FROM post_file
+		WHERE post_no = #{post_no}
+		ORDER BY file_no
+	</select>
+	
+	<delete id="deletePostFile" parameterType="boardPostFileVo">
+		delete post_file where file_no=#{file_no}
+	</delete>
+	
+	<select id="selectBorNm" resultType="String" parameterType="int">
+		SELECT bor_nm FROM board WHERE bor_no=#{bor_no}
+	</select>
+	
+<!-- 	<select id="selectFile" parameterType="attFileVo" resultType="attFileVo">
+		select * from att_file a, post_file p 
+		where a.file_no = p.file_no 
+		and post_no=#{post_no}
+	</select> -->
+	
+<!-- 	<select id="selectAttFileDownload" resultType="attFileVo" parameterType="attFileVo">
+		select * from att_file where file_no=#{file_no}
+	</select>
+	
+	<select id="selectFileDownload" resultType="boardPostFileVo" parameterType="int">
+		select * from post_file  where file_no=#{file_no}
+	</select>
+	 -->
+	 
+	<!-- <delete id="deleteAttFile" parameterType="AttFileVo">
+		delete att_file where file_no=#{file_no}		
+	</delete> -->
+	
+<!-- 	<select id="postListView" resultType="boardPostVo" parameterType="pageVo">
+		SELECT *
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM (SELECT post_no, title, ko_nm, reg_dt, hits, del_cd 
+		    		 FROM post p, emp e
+                     WHERE e.emp_no = p.emp_no 
+		     		 AND bor_no=#{bor_no}
+		     		 ORDER BY post_no desc) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize})
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} + 1 AND #{page} * #{pageSize}	
+	</select>  -->
+	
+	<select id="selectPostCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*) cnt FROM post WHERE bor_no=#{bor_no}
+	</select>
+	
+	<update id="deletePost" parameterType="boardPostVo">
+		update post set del_cd=1 where post_no=#{post_no}
+	</update>
+	
+	<!-- 댓글 등록 -->
+	<insert id="insertComm" parameterType="boardCommVo">
+		insert into comm values(post_comm_seq.nextVal,sysdate,#{cont},0,#{post_no},#{emp_no})
+	</insert>
+	
+	<!-- 댓글 선택  -->
+	<select id="selectComm" parameterType="boardCommVo" resultType="boardCommVo">
+		select cont, ko_nm, reg_dt, post_no, del_cd, com_no, e.emp_no emp_no
+		from comm c, emp e
+		where c.emp_no = e.emp_no
+		and post_no=#{post_no}
+		order by com_no
+	</select>
+	
+	<!-- 댓글 삭제 -->
+	<update id="deleteComm" parameterType="boardCommVo">
+		update comm set del_cd=1 where com_no=#{com_no}
+	</update>
+	
+	<!-- 답글 작성 -->
+	<insert id="insertReply" parameterType="boardPostVo">
+		insert into post values(post_seq.nextVal,#{title},#{cont},
+					sysdate,0,#{emp_no},#{bor_no},0,#{higher_post_no})
+	</insert>
+	
+	<!-- 소통게시판(계층형 게시판) -->
+	<select id="postListView" parameterType="pageVo" resultType="boardPostVo">
+		SELECT LPAD((' '), 8*(LEVEL-1)) || TITLE title, LEVEL boardLevel, b.*
+		FROM
+			(SELECT ROWNUM rn, a.*
+			 FROM
+			     (SELECT title, bor_no, ko_nm, post_no, e.emp_no, hits, reg_dt, del_cd,higher_post_no	
+			      FROM POST p, emp e
+			      WHERE bor_no = #{bor_no} 
+			      and e.emp_no = p.emp_no
+			      ORDER BY post_no DESC
+			      ) a
+			 )b
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+		START WITH higher_post_no IS NULL 
+		CONNECT BY PRIOR POST_NO = higher_post_no
+		ORDER SIBLINGS BY reg_dt DESC
+	</select>
+
+	<!-- 게시글 검색 -->
+	<select id="SearchPost" resultType="boardPostVo" parameterType="pageVo">
+		SELECT *
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM (SELECT title, e.ko_nm, e.emp_no emp_no, reg_dt, hit 
+		     FROM post p, emp e 
+		     WHERE e.emp_no = p.emp_no
+		 	 AND title LIKE '%' || #{keyword} || '%' ORDER BY post_no) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize})
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} + 1 AND #{page} * #{pageSize}
+	</select>
+	
+	<select id="SearchWriter" resultType="boardPostVo" parameterType="pageVo">
+		SELECT *
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM (SELECT title,ko_nm,reg_dt,hit 
+		     FROM post p, emp e 
+		 	 WHERE emp_no LIKE '%' || #{keyword} || '%' ORDER BY post_no) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize})
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} + 1 AND #{page} * #{pageSize}
+	</select>
+	 
+	<!-- 공지사항 팝업 등록 -->
+	<insert id="insertPopup" parameterType="popUpVo">
+		insert into popup values (#{popup_no},#{title},#{s_time},#{e_time},1,#{cont})
+	</insert>
+	
+	<!-- 공지사항 팝업 선택 -->
+	<select id="selectPopup" resultType="popUpVo" parameterType="int">
+		select * from popup where popup_no=#{popup_no}
+	</select>
+	
+	<!-- <insert id="insertPopDis" parameterType="popDisVo">
+		insert into pop_dis values (#{emp_no},popup_seq.nextVal,#{inact_e_dt},#{act_cd})
+	</insert>
+	
+	<select id="selectPopDis" parameterType="int" resultType="popDisVo">
+		select * from pop_dis where ACT_CD=1
+	</select> -->
+	
+	<!-- 메인화면에 팝업 보이기 -->
+	<select id="selectPopUpList" parameterType="int" resultType="popUpVo"> 
+		SELECT p.popup_no popup_no, p.title title, p.s_time s_time, p.e_time e_time, p.act_cd act_cd, b.cont cont
+		FROM popup p, post b
+		WHERE b.post_no = p.popup_no
+		AND TO_CHAR(SYSDATE,'yyyy-mm-dd') BETWEEN TO_CHAR(p.S_TIME,'yyyy-mm-dd') AND TO_CHAR(p.E_TIME,'yyyy-mm-dd') AND p.act_cd = 1 and popup_no=#{popup_no}
+		<!-- SELECT *
+		FROM popup
+		WHERE TO_CHAR(SYSDATE,'yyyy-mm-dd') BETWEEN TO_CHAR(S_TIME,'yyyy-mm-dd') AND TO_CHAR(E_TIME,'yyyy-mm-dd') AND act_cd = 1 and popup_no=#{popup_no} -->
+	</select>
+	 
+	 <!-- 메인화면에 팝업 보이기 -->
+	<select id="selectTodayPopUpList"  resultType="popUpVo"> 
+		SELECT p.popup_no popup_no, p.title title, p.s_time s_time, p.e_time e_time, p.act_cd act_cd, b.cont cont
+		FROM popup p, post b
+		WHERE b.post_no = p.popup_no
+		AND TO_CHAR(SYSDATE,'yyyy-mm-dd') BETWEEN TO_CHAR(p.S_TIME,'yyyy-mm-dd') AND TO_CHAR(p.E_TIME,'yyyy-mm-dd') AND p.act_cd = 1
+	</select>
+
+		<!-- 
+		SELECT *
+		FROM popup
+		WHERE TO_CHAR(SYSDATE,'yyyy-mm-dd') BETWEEN TO_CHAR(S_TIME,'yyyy-mm-dd') AND TO_CHAR(E_TIME,'yyyy-mm-dd') AND act_cd = 1
+	 	-->
+	 
+
+</mapper>
+

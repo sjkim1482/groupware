@@ -1,0 +1,126 @@
+package kr.or.ddit.qrattend;
+
+import javax.annotation.Resource;
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpRequest;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+
+import kr.or.ddit.common.model.PageVo;
+import kr.or.ddit.groupware.contoller.OnoffController;
+import kr.or.ddit.groupware.model.EmpVo;
+import kr.or.ddit.groupware.model.OnOffVo;
+import kr.or.ddit.groupware.service.EmpService;
+import kr.or.ddit.groupware.service.OnOffService;
+
+@RequestMapping("QR")
+@Controller
+public class QRController {
+	
+	private static final Logger logger = LoggerFactory.getLogger(OnoffController.class);
+
+	@Resource(name="onoffService")
+	private OnOffService onoffService;
+	
+	@Resource(name="empService")
+	private EmpService empService;
+	
+	//시큐리티 pw암호화
+	@Inject
+	BCryptPasswordEncoder pwdEncode;
+	
+	@RequestMapping("loginView")
+	public String loginView() {
+		
+		return "QR/QRlogin";
+	}
+	
+	@RequestMapping("dologin")
+	public String QRLogin(EmpVo empVo, HttpSession session, Model model) {
+		
+		EmpVo dbUser = empService.selectUser(empVo.getEmp_id());
+		if(dbUser == null) {
+			return "redirect:/QR/loginView";
+		}
+		logger.debug("dbUserPass:{}", dbUser.getPass());
+		
+		//암호화 pw체크
+		boolean pwdMatch = pwdEncode.matches(empVo.getPass(), dbUser.getPass());
+		logger.debug("pwdMatch:{}", pwdMatch);
+
+		if(dbUser != null && pwdMatch == true) {
+			session.setAttribute("QR_USER", dbUser);
+			session.setMaxInactiveInterval(15);
+			
+			return "redirect:/QR/QRdclz";
+								
+		}else {	
+			return "redirect:/QR/loginView";
+		}
+
+	}
+	
+	@RequestMapping("QRattend")
+	public String doattend(HttpServletRequest req, int emp_no, Model model) {
+		
+		// client ip ::: req.getRemoteAddr();
+		int checkAttend = onoffService.checkAttendCnt(emp_no);
+
+		
+		logger.debug("emp_no : {}", emp_no);
+		logger.debug("checkAttend : {}", checkAttend);
+		
+		if(checkAttend == 0) {
+			int insertCnt = onoffService.insertAttend(emp_no);
+			logger.debug("insertCnt : {}", insertCnt);
+			
+			if(insertCnt == 1) {
+				model.addAttribute("qrattendcheck", 1);
+			}else {
+				model.addAttribute("qrattendcheck", 0);
+			}
+			
+			return "QR/QRattendCheck";
+			
+		}else {
+			
+			int updateCnt = onoffService.updateOffwork(emp_no);
+			
+			logger.debug("updateCnt", updateCnt);
+			
+			if(updateCnt == 1) {
+				model.addAttribute("qroffworkcheck", 1);
+			}else {
+				model.addAttribute("qroffworkcheck", 0);
+			}
+			return "QR/QRoffworkCheck";
+		}
+		
+	}
+	
+	@RequestMapping("QRdclz")
+	public String QRdclz(Model model) {
+		
+		String url = "http:192.168.0.121/QR/QRattend";
+		
+		model.addAttribute("url", url);
+		
+		return "QR/QRDCLZ";
+	}
+	
+	@RequestMapping("CreateQRCode")
+	public ModelAndView CreateQR(String content, Model model) {
+		
+		return new ModelAndView("qrcodeview", "content", content);
+	}
+		
+	
+}

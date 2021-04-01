@@ -1,0 +1,106 @@
+package kr.or.ddit.groupware.repository;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import kr.or.ddit.groupware.model.VacationVo;
+
+@Repository("vacationDao")
+public class VacationDao implements VacationDaoI{
+
+	@Resource(name = "sqlSessionTemplate")
+	private SqlSessionTemplate template;
+
+	@Override
+	public int registVacation(VacationVo vacationVo) {
+		// TODO Auto-generated method stub
+		return template.insert("vacation.registVacation",vacationVo);
+	}
+
+	@Override
+	public int vacationMaxNo() {
+		// TODO Auto-generated method stub
+		return template.selectOne("vacation.vacationMaxNo");
+	}
+
+	@Override
+	public int vacationTime(VacationVo vacationVo) {
+		// TODO Auto-generated method stub
+		return template.selectOne("vacation.vacationTime", vacationVo);
+	}
+
+	@Override
+	public int subVacCnt(VacationVo vacationVo) {
+		// TODO Auto-generated method stub
+		return template.update("vacation.subVacCnt",vacationVo);
+	}
+
+	@Override
+	public int subVacSrvCnt(VacationVo vacationVo) {
+		// TODO Auto-generated method stub
+		return template.update("vacation.subVacSrvCnt", vacationVo);
+	}
+	
+
+	@Override
+	public int updateVac() {
+		
+		return template.update("vacation.updateVac");
+	}
+
+	@Override
+	public List<VacationVo> selectVacInfoPaging(Map<String, Object> map) {
+		
+		return template.selectList("vacation.selectVacInfoPaging", map);
+	}
+
+	@Override
+	public int selectVacInfoCnt() {
+		
+		return template.selectOne("vacation.selectVacInfoCnt");
+	}
+
+	@Override
+	public List<VacationVo> searchempVacPaging(Map<String, Object> map) {
+		
+		return template.selectList("vacation.searchempVacPaging", map);
+	}
+
+	@Override
+	public int searchempVacCnt(Map<String, Object> map) {
+		
+		return template.selectOne("vacation.searchempVacCnt", map);
+	}
+	
+	@Override
+	public List<VacationVo> selectDetVacInfoPaging(Map<String, Object> map) {
+		
+		return template.selectList("vacation.selectDetVacInfoPaging", map);
+	}
+	
+	@Override
+	public int selectDetVacInfoCnt(Map<String, Object> map) {
+		 
+		return template.selectOne("vacation.selectDetVacInfoCnt", map);
+	}
+	
+	@Override
+	public List<VacationVo> vacationStaPaging(Map<String, Object> map) {
+		
+		return template.selectList("vacation.vacationStaPaging", map);
+	}
+
+	@Override
+	public int vacationStaPagingCnt(Map<String, Object> map) {
+		
+		return template.selectOne("vacation.vacationStaPagingCnt", map);
+	}
+
+	
+	
+}

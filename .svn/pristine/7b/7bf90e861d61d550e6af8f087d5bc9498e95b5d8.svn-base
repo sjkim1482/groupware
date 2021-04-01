@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="msg">
+ 
+	<!-- 쪽지 전송 -->
+	<insert id="sentMsg" parameterType="msgVo">
+		INSERT INTO msg VALUES(
+		msg_seq.nextVal
+		,#{title }
+		,#{cont }
+		,SYSDATE
+		,''
+		,#{sd_emp_no }
+		,#{rc_emp_no }
+		,#{msg_sta_cd }
+		,'N'
+		,''
+		,''
+		)		
+	</insert>
+	<!-- 쪽지 임시저장 -->
+	<insert id="tempMsg" parameterType="msgVo">
+		INSERT INTO msg VALUES(
+		msg_seq.nextVal
+		,#{title }
+		,#{cont }
+		,SYSDATE
+		,''
+		,#{sd_emp_no }
+		,''
+		,#{msg_sta_cd }
+		,'N'
+		,''
+		,''
+		)		
+	</insert>
+	<!-- 임시저장 쪽지 삭제 -->
+	<update id="deleteTempMsg" parameterType="msgVo">
+		UPDATE msg SET msg_sta_cd=706
+		WHERE msg_no = #{msg_no}
+	</update>
+	
+	<!-- 임시저장 쪽지 휴지통으로 이동 -->
+	<update id="deleteMsg" parameterType="msgVo">
+		UPDATE msg SET msg_sta_cd=705
+		WHERE msg_no = #{msg_no}
+	</update>	
+	<!-- 임시저장 쪽지 재 임시저장 -->
+	<update id="tempTempMsg" parameterType="msgVo">
+		UPDATE msg SET title=#{title }, cont=#{cont },
+		reg_dt = SYSDATE
+		WHERE msg_no = #{msg_no}
+	</update>
+	
+	
+	<!-- 등록한 메세지 호출 -->
+	<select id="maxMsgNo" resultType="int">
+		SELECT MAX(msg_no)
+		FROM msg
+	</select>
+	
+	<!-- 첨부파일 등록 -->
+	<insert id="registMsgFile" parameterType="msgFileVo">
+		INSERT INTO msg_file VALUES(#{file_no},#{msg_no})
+	</insert>
+	
+	<!-- 첨부파일 확인 -->
+	<select id="msgFileList" resultType="int" parameterType="int">
+		SELECT file_no
+		FROM msg_file
+		WHERE msg_no = #{msg_no}
+		ORDER BY file_no
+	</select>
+	
+	<!-- 받은쪽지 확인 -->
+	<select id="recMsgList" parameterType="pageVo" resultType="msgVo">
+		SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT msg_no, title, cont, reg_dt,sd_emp_no, rc_emp_no, msg_sta_cd, rc_sta_cd, m.emp_no emp_no, msg_box_no, emp_id, ko_nm, dept_nm, cd_ko_nm
+                  FROM msg m, emp e, dept d, comm_cd c
+                  WHERE m.sd_emp_no = e.emp_no
+                  AND e.PO_CD = c.comm_no
+                  AND e.dept_no = d.dept_no
+                  AND rc_emp_no = #{emp_no}
+                  AND msg_sta_cd != 705
+                  AND msg_sta_cd != 706
+                  AND msg_box_no IS NULL
+                  ORDER BY msg_no DESC
+		          )a
+             WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<!-- 받은 쪽지 개수 -->
+	<select id="recMsgCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM msg
+  		WHERE rc_emp_no = #{emp_no}
+  		AND msg_sta_cd != 705
+        AND msg_sta_cd != 706
+	</select>
+	
+	<!-- 안읽은 쪽지 개수 -->
+	<select id="noReadMsgCnt" resultType="int" parameterType="int">
+		SELECT COUNT(*)
+  		FROM msg
+  		WHERE rc_emp_no = #{emp_no}
+  		AND rc_sta_cd = 'N'
+  		AND msg_sta_cd != 705
+        AND msg_sta_cd != 706
+        AND msg_box_no IS NULL
+	</select>
+	
+	<!-- 임시저장 쪽지 확인 -->
+	<select id="tempMsgList" parameterType="pageVo" resultType="msgVo">
+		SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT msg_no, title, cont, reg_dt,sd_emp_no, rc_emp_no, msg_sta_cd, rc_sta_cd, m.emp_no emp_no, msg_box_no, emp_id, ko_nm, dept_nm, cd_ko_nm
+                  FROM msg m, emp e, dept d, comm_cd c
+                  WHERE m.sd_emp_no = e.emp_no
+                  AND e.po_cd = c.comm_no
+                  AND e.dept_no = d.dept_no
+                  AND sd_emp_no = #{emp_no}
+                  AND msg_sta_cd = 704
+                  ORDER BY msg_no DESC
+		          )a
+             WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<!-- 임시저장 쪽지 개수 -->
+	<select id="tempMsgCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM msg
+  		WHERE sd_emp_no = #{emp_no}
+  		AND msg_sta_cd = 704
+	</select>
+	
+	<!-- 보낸쪽지 확인 -->
+	<select id="sentMsgList" parameterType="pageVo" resultType="msgVo">
+		SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT msg_no, title, cont, reg_dt,sd_emp_no, rc_emp_no, msg_sta_cd, rc_sta_cd, m.emp_no emp_no, msg_box_no, emp_id, ko_nm, dept_nm, cd_ko_nm
+                  FROM msg m, emp e, dept d, comm_cd c
+                  WHERE m.rc_emp_no = e.emp_no
+                  AND e.po_cd = c.comm_no
+                  AND e.dept_no = d.dept_no
+                  AND sd_emp_no = #{emp_no}
+                  AND msg_sta_cd != 705
+                  AND msg_sta_cd != 706
+                  ORDER BY msg_no DESC
+		          )a
+             WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<!-- 보낸 쪽지 개수 -->
+	<select id="sentMsgCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM msg
+  		WHERE sd_emp_no = #{emp_no}
+  		AND msg_sta_cd != 705
+        AND msg_sta_cd != 706
+	</select>
+	
+	
+	<!-- 쪽지 읽음처리 표시 -->
+	<update id="readMsg" parameterType="int">
+		UPDATE msg SET rc_sta_cd = 'Y' WHERE msg_no=#{msg_no}
+	</update>
+	
+	<!-- 쪽지 상세정보 -->
+	<select id="msgView" parameterType="int" resultType="msgVo">
+		SELECT msg_no, title, cont, reg_dt,sd_emp_no, rc_emp_no, msg_sta_cd, rc_sta_cd, m.emp_no emp_no, msg_box_no, emp_id, ko_nm, dept_nm, cd_ko_nm
+        FROM msg m, emp e, dept d, comm_cd c
+        WHERE m.sd_emp_no = e.emp_no
+        AND e.po_cd = c.comm_no
+        AND e.dept_no = d.dept_no
+        AND msg_no = #{msg_no}
+	</select>
+	
+	<!-- 휴지통 확인 -->
+	<select id="deleteMsgList" parameterType="pageVo" resultType="msgVo">
+		SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT msg_no, title, cont, reg_dt,sd_emp_no, rc_emp_no, msg_sta_cd, rc_sta_cd, m.emp_no emp_no, msg_box_no, emp_id, ko_nm, dept_nm, cd_ko_nm
+                  FROM msg m, emp e, dept d, comm_cd c
+                  WHERE m.rc_emp_no = e.emp_no
+                  AND e.po_cd = c.comm_no
+                  AND e.dept_no = d.dept_no
+                  AND (sd_emp_no = #{emp_no}
+                  OR rc_emp_no = #{emp_no})
+                  AND msg_sta_cd = 705
+                  ORDER BY msg_no DESC
+		          )a
+             WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<!-- 임시저장 쪽지 개수 -->
+	<select id="deleteMsgCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM msg
+  		WHERE (sd_emp_no = #{emp_no}
+        OR rc_emp_no = #{emp_no})
+        AND msg_sta_cd = 705
+	</select>
+	
+	<!-- 쪽지함 등록 -->
+	<insert id="registMsgBox" parameterType="msgBoxVo">
+		INSERT INTO msg_box VALUES(msg_box_seq.nextVal,#{emp_no},#{msg_box_nm},1)
+	</insert>
+	
+	
+	<!-- 쪽지함 리스트 -->
+	<select id="msgBoxList" resultType="msgBoxVo" parameterType="int">
+		SELECT *
+		FROM msg_box
+		WHERE emp_no=#{emp_no}
+	</select>
+	
+	
+	<!-- 쪽지 쪽지함으로 이동 -->
+	<update id="moveMsgBox" parameterType="msgVo">
+		UPDATE msg SET emp_no=#{emp_no}, msg_box_no=#{msg_box_no}
+		WHERE msg_no = #{msg_no}
+	</update>
+	
+	
+	<!-- 쪽지함 쪽지 리스트 확인 -->
+	<select id="selectMsgBoxView" parameterType="pageVo" resultType="msgVo">
+		SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT msg_no, title, cont, reg_dt,sd_emp_no, rc_emp_no, msg_sta_cd, rc_sta_cd, m.emp_no emp_no, msg_box_no, emp_id, ko_nm, dept_nm, cd_ko_nm
+                  FROM msg m, emp e, dept d, comm_cd c
+                  WHERE m.sd_emp_no = e.emp_no
+                  AND e.PO_CD = c.comm_no
+                  AND e.dept_no = d.dept_no
+                  AND rc_emp_no = #{emp_no}
+                  AND msg_sta_cd != 705
+                  AND msg_sta_cd != 706
+                  AND msg_box_no = #{msg_box_no}
+                  ORDER BY msg_no DESC
+		          )a
+             WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<!-- 쪽지함 쪽지 리스트 개수 -->
+	<select id="selectMsgBoxCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM msg
+  		WHERE sd_emp_no = #{emp_no}
+  		AND msg_sta_cd != 705
+        AND msg_sta_cd != 706
+        AND msg_box_no = #{msg_box_no}
+	</select>
+	
+	<!-- 휴지통에서 쪽지함 이동 -->
+	<update id="returnMsg" parameterType="msgVo">
+		UPDATE msg SET msg_sta_cd=702
+		WHERE msg_no = #{msg_no}
+	</update>
+	
+	
+</mapper>

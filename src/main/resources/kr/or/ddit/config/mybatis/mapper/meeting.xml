@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="meeting">
+	<!-- 회의 생성 -->
+	<insert id="registMeeting" parameterType="meetingVo">
+		INSERT INTO meeting VALUES(meeting_seq.nextVal,#{meet_nm},SYSDATE,'',#{emp_no},800)
+	</insert>
+	<!-- 회의 참여자 등록 -->
+	<insert id="registMeetInfo" parameterType="meetInfoVo">
+		INSERT INTO meet_info VALUES(#{emp_no},#{meet_no})
+	</insert>
+	<!-- 최근회의번호 호출 -->
+	<select id="maxMeetingNo" resultType="int">
+		SELECT MAX(meet_no)
+		FROM meeting
+	</select>
+	
+	<!-- 참여된 회의 리스트 -->
+	<select id="selectMeetInfoList" resultType="int" parameterType="int">
+		SELECT i.meet_no
+		FROM meet_info i, meeting m
+		WHERE i.meet_no = m.meet_no
+		AND i.emp_no = #{emp_no}
+		AND sta_cd = 800
+	</select>
+	
+	<!-- 회의 정보 -->
+	<select id="selectMeeting" resultType="meetingVo" parameterType="int">
+		SELECT meet_no, meet_nm, ko_nm, cd_ko_nm, m.emp_no
+		FROM meeting m, emp e, comm_cd c
+		WHERE m.emp_no = e.emp_no
+		AND e.po_cd = c.comm_no
+		AND meet_no = #{meet_no}
+		AND sta_cd = 800
+	</select>
+	
+	<!-- 화상회의 종료 -->
+	<update id="closeMeeting" parameterType="int">
+		UPDATE meeting SET sta_cd = 801 
+		WHERE meet_no = #{meet_no}
+	</update>
+	
+	
+	
+</mapper>
+
+
+

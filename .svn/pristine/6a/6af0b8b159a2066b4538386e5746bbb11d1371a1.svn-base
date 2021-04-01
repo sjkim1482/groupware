@@ -1,0 +1,12 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+
+<script type="text/javascript">
+ $(function(){
+	 $("#empMsgList").on("click", function() {
+	 	var win = window.open("${cp}/meeting/empInfoMsgList", "PopupWin", "width=900,height=500");
+	 })	 
+ })
+</script>
+
+<input type="button" id="empMsgList" value="화상회의 생성">

@@ -1,0 +1,10 @@
+@charset "UTF-8";
+
+
+td {
+	border: 1px solid;
+}
+
+h3 {
+	font-size: 3.0em; font-weight: bold; padding:10px 0 10px 0px; margin:0 10px; text-align: center
+}

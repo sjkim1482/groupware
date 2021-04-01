@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="meeting">
+	<!-- 회의 생성 -->
+	<insert id="registMeeting" parameterType="meetingVo">
+		INSERT INTO meeting VALUES(meeting_seq.nextVal,#{meet_nm},SYSDATE,'',#{emp_no},800)
+	</insert>
+	<!-- 회의 참여자 등록 -->
+	<insert id="registMeetInfo" parameterType="meetInfoVo">
+		INSERT INTO meet_info VALUES(#{emp_no},#{meet_no})
+	</insert>
+	<!-- 최근회의번호 호출 -->
+	<select id="maxMeetingNo" resultType="int">
+		SELECT MAX(meet_no)
+		FROM meeting
+	</select>
+	
+	
+</mapper>
+
+
+

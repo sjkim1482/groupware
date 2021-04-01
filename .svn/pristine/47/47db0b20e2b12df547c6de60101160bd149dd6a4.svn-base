@@ -1,0 +1,56 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<script>
+
+	var seconds = 15;
+	var interval = setInterval(count30s, 1000);		
+	
+	// 30초 카운트 해주는 function
+	function count30s(){
+		$("#30seconds").text(seconds);
+		if(seconds <= 15 && seconds >= 1){
+			seconds--;
+		}else{
+			alert("QR코드 인증시간이 초과되었습니다. \n다시 로그인 하여 주십시오.")
+			clearInterval(interval)
+			location.href="/QR/loginView"
+		}
+		
+	}
+	
+	  $(document).ready(function(){
+
+              url = "/QR/CreateQRCode";
+              var content = $("#content").val();
+                
+              $("#img").attr("src", url+"?content="+content);
+
+      });
+
+	
+</script>
+<body>
+	
+	<div class="wrapper">
+		<div class="setTime">
+			<div>
+		        <input id="content" type="text" name="content" value="${url }?emp_no=${QR_USER.emp_no}"/>
+		        <input type="button" id="execute" value="QR코드생성"/>
+		        <img id="img" style="display:none" onload="this.style.display='block'"/>
+		    </div>
+		    
+			<div id="30seconds" onload="count30s()">
+				
+			</div>
+		</div>
+	</div>
+
+</body>
+</html>

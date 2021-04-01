@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="scd">
+ 
+  <!-- select 된 커럼과 resultType에 기술된 클래스의 필드 이름이 동일하면 자동으로 값을 넣어준다
+  	   resultType : 한 행의 정보를 저장할 수 있는 클래스 타입을 명시 -->
+ 
+  <!-- 전체 일정 조회(디폴트) -->
+  <select id="selectAll" resultType="scdVo"  parameterType="int"> 
+   SELECT * 
+   FROM scd
+   WHERE emp_no = #{emp_no}
+  </select>
+  <!-- 일정 조회 개인일정인지:1, 사내일정인지:2 , 프로젝트일정인지:2 -->
+  <select id="selectScd" resultType="scdVo" parameterType="scdVo">
+  	SELECT * 
+  	FROM scd
+  	WHERE scd_div_no = #{scd_div_no}
+  	AND emp_no = #{emp_no}
+  </select>
+  
+  <!-- 일정 상세정보 조회  - 해당 일정 -->
+  <select id="scdView" parameterType="scdVo" resultType="scdVo">
+   SELECT scd_no, ko_nm, scd_div_nm, s_dt, e_dt, plc, title, cont, cd_ko_nm , dept_nm
+   FROM scd s , comm_cd c , scd_div d,  emp e, dept p
+   WHERE s.sta_cd = c.comm_no
+   AND e.emp_no = s.emp_no
+   AND s.scd_div_no = d.scd_div_no
+   AND e.dept_no = p.dept_no
+   AND scd_no= #{scd_no}
+  </select>
+  
+  <!-- 일정 등록  -->
+  <insert id="registCalendar" parameterType="scdVo">
+	INSERT INTO scd (scd_no, emp_no, scd_div_no, s_dt, e_dt, plc, title, cont, dept_no, pms_no, sta_cd) 
+				VALUES ( SCD_SEQ.NEXTVAL,  #{emp_no}, #{scd_div_no}, #{s_dt}, #{e_dt}, #{plc}, #{title}, #{cont}, #{dept_no}, null, #{sta_cd})
+  </insert>
+  
+  <!-- 일정 등록 PMS  -->
+  <insert id="registPmsCalendar" parameterType="scdVo">
+	INSERT INTO scd (scd_no, emp_no, scd_div_no, s_dt, e_dt, plc, title, cont, dept_no, pms_no, sta_cd) 
+				VALUES ( SCD_SEQ.NEXTVAL,  #{emp_no}, #{scd_div_no}, #{s_dt}, #{e_dt}, #{plc}, #{title}, #{cont}, null, #{pms_no}, #{sta_cd})
+  </insert>
+  
+  <!-- 일정 수정 (날짜, 장소, 제목, 내용)-->
+  <update id="modifyCalendar" parameterType="scdVo">
+    UPDATE scd  SET s_dt = #{s_dt}, e_dt =#{e_dt}, plc = #{plc}, title = #{title}, cont = #{cont}, sta_cd= #{sta_cd}, scd_div_no = #{scd_div_no}
+    		WHERE scd_no = #{scd_no}
+  </update>
+  
+  <!-- 일정 삭제 -->
+  <delete id="deleteCalendar" parameterType="int">
+  	DELETE FROM scd WHERE scd_no = #{scd_no}
+  </delete>
+  
+  <!-- 일정 제목 검색  -->
+  <select id="searchPagingCalendar" resultType="scdVo" parameterType="map">
+  SELECT * 
+	FROM 
+	    (SELECT ROWNUM rn,a.* 
+	    FROM 
+	        (SELECT scd_no, e.ko_nm, d.scd_div_nm, s_dt, e_dt, cd_ko_nm,title
+            FROM scd s , comm_cd c , emp e, scd_div d
+            WHERE s.sta_cd = c.comm_no
+            AND e.emp_no = s.emp_no
+            AND s.scd_div_no = d.scd_div_no
+         	AND ${field}  LIKE '%' || #{data} || '%'
+         	AND e.emp_no = #{emp_no}
+            ORDER BY e.emp_no) a
+	    WHERE ROWNUM &lt;= #{page} * #{pageSize})
+	WHERE rn BETWEEN (#{page}-1) * #{pageSize} + 1 AND #{page} * #{pageSize}
+  </select>
+  
+  <!-- 일정 검색 개수 조회  -->
+  <select id="SearchCalendar"  resultType="int" parameterType="map">
+	SELECT count(*)
+	FROM(SELECT scd_no, e.ko_nm, d.scd_div_nm, s_dt, e_dt, cd_ko_nm,title
+	            FROM scd s , comm_cd c , emp e, scd_div d
+	            WHERE s.sta_cd = c.comm_no
+	            AND e.emp_no = s.emp_no
+	            AND s.scd_div_no = d.scd_div_no
+	            AND e.emp_no = #{emp_no}
+	         	AND   ${field} LIKE '%' || #{data} || '%')
+ </select>
+  
+  <!-- 일정 상태코드 조회 -->
+	<select id="selectComm_cd" resultType="commCdVo">
+	 SELECT comm_no, cd_ko_nm
+	 FROM comm_cd
+	 WHERE COMM_TP_CHAR = 'H008'
+	</select>
+	
+	<!-- 일정 구분 조회 -->
+	<select id="selectScdDivVo" resultType="scdVo">
+	 SELECT scd_div_no, scd_div_nm
+	 FROM scd_div
+	 ORDER BY scd_div_no
+	</select>
+ 
+</mapper>

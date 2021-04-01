@@ -1,0 +1,214 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+
+
+<head>
+<script>
+//페이징처리
+function pagingAppWaitAjax(page, pageSize) {
+	$.ajax({
+		url : "${cp}/app/pagingAppWaitAjax",
+		data : "page=" + page + "&pageSize=" + pageSize + "&emp_no=" + ${S_USER.emp_no},
+		success : function(data) {
+			var html = data.split("####################");
+			$("#appTable").html(html[0]);
+			$("#pagination").html(html[1]);
+		},
+		error : function(xhr) {
+			alert("상태 : " + xhr.status);
+		}
+	});
+}
+
+function pagingAppProAjax(page, pageSize) {
+	$.ajax({
+		url : "${cp}/app/pagingAppProAjax",
+		data : "page=" + page + "&pageSize=" + pageSize + "&emp_no=" + ${S_USER.emp_no},
+		success : function(data) {
+			var html = data.split("####################");
+			$("#appTable").html(html[0]);
+			$("#pagination").html(html[1]);
+		}
+	});
+}
+
+function pagingAppCompleAjax(page, pageSize) {
+	$.ajax({
+		url : "${cp}/app/pagingAppCompleAjax",
+		data : "page=" + page + "&pageSize=" + pageSize + "&emp_no=" + ${S_USER.emp_no},
+		success : function(data) {
+			var html = data.split("####################");
+			$("#appTable").html(html[0]);
+			$("#pagination").html(html[1]);
+		}
+	});
+}
+
+function pagingAppTempAjax(page, pageSize) {
+	$.ajax({
+		url : "${cp}/app/pagingAppTempAjax",
+		data : "page=" + page + "&pageSize=" + pageSize + "&emp_no=" + ${S_USER.emp_no},
+		success : function(data) {
+			var html = data.split("####################");
+			$("#appTable").html(html[0]);
+			$("#pagination").html(html[1]);
+		}
+	});
+}
+
+
+
+
+$(function() {
+	$("#registAppDocument").on("click", function() {
+		$("#appSelect").empty();
+		$("#appTable").empty();
+		$("#pagination").empty();
+		$("#appSelect").append(
+			'<button type="button" id="registAppDraft" class="btn btn-info btn-3d">기안서</button> '+
+			'<button type="button" id="registAppPMS" class="btn btn-info btn-3d">프로젝트 등록</button> <hr>'
+		)
+	})
+	// 일반문서 등록
+	$("#registAppVacation").on("click", function() {
+		$("#appSelect").empty();
+		$("#appTable").empty();
+		$("#pagination").empty();
+		$("#appSelect").append(
+			'<button type="button" id="registAppAL" class="btn btn-info btn-3d">연차</button> '+
+			'<button type="button" id="registAppSRV" class="btn btn-info btn-3d">반차</button> <hr>'
+		)
+	})
+	
+	// 기안서 등록
+	$("#appSelect").on("click","#registAppDraft", function() {
+		$("#app_det_no").val("1");
+		$("#app_div_no").val("1");
+		$("#appfrm").submit();
+	})
+	$("#appSelect").on("click","#registAppPMS", function() {
+		$("#app_det_no").val("4");
+		$("#app_div_no").val("3");
+		$("#appfrm").submit();
+	})
+	
+	// 휴가(연차) 등록
+	$("#appSelect").on("click","#registAppAL", function() {
+		$("#app_det_no").val("2");
+		$("#app_div_no").val("2");
+		$("#appfrm").submit();
+	})
+	
+	// 휴가(반차) 등록
+	$("#appSelect").on("click","#registAppSRV", function() {
+		$("#app_det_no").val("3");
+		$("#app_div_no").val("2");
+		$("#appfrm").submit();
+	})
+	
+	
+	// 결재함버튼
+	$("#appList").on("click", function() {
+		$("#appSelect").empty();
+		$("#appTable").empty();
+		$("#pagination").empty();
+		$("#appSelect").append(
+			'<button type="button" id="appListPro" class="btn btn-info btn-3d">진행중결재 문서함</button> '+
+			'<button type="button" id="appWaitingList" class="btn btn-info btn-3d">결재대기 문서함</button> ' +
+			'<button type="button" id="appCompleList" class="btn btn-info btn-3d">결재완료 문서함</button> <hr>'
+		)
+	})
+	
+	// 임시저장 결재목록
+	$("#saveAppList").on("click", function() {
+		$("#appSelect").empty();
+		$("#appTable").empty();
+		$("#pagination").empty();
+		pagingAppTempAjax(1, 10);
+	
+	})
+	// 진행중 결재목록
+	$("#appSelect").on("click","#appListPro", function() {
+		pagingAppProAjax(1, 10);
+	
+	})
+	
+	// 결재대기 결재목록
+	$("#appSelect").on("click","#appWaitingList", function() {
+		pagingAppWaitAjax(1, 10);
+	})
+	
+	// 완료된 결재목록
+	$("#appSelect").on("click","#appCompleList", function() {
+		pagingAppCompleAjax(1, 10);
+	})
+	// 결재대기 문서 보기
+	$("#appTable").on("click", ".appDetail", function() {
+		var app_char = $(this).data("app_char");
+		$("#app_char").val(app_char);
+		$("#appDatailFrm").attr("action","${cp}/app/appDetail");
+		$("#appDatailFrm").submit();
+	})
+	// 결재중 문서 확인
+	$("#appTable").on("click", ".appDetailView", function() {
+		var app_char = $(this).data("app_char");
+		$("#app_char").val(app_char);
+		$("#appDatailFrm").attr("action","${cp}/app/appDetailView");
+		$("#appDatailFrm").submit();
+	})
+	// 결재 완료 문서보기
+	$("#appTable").on("click", ".appDetailCompleView", function() {
+		var app_char = $(this).data("app_char");
+		$("#app_char").val(app_char);
+		$("#appDatailFrm").attr("action","${cp}/app/appDetailCompleView");
+		$("#appDatailFrm").submit();
+	})
+	// 임시 저장 문서보기
+	$("#appTable").on("click", ".appDetailTempView", function() {
+		var app_char = $(this).data("app_char");
+		$("#app_char").val(app_char);
+		$("#appDatailFrm").attr("action","${cp}/app/appDetailTempView");
+		$("#appDatailFrm").submit();
+	})
+	// 개인 결재선 만들기
+	$("#addAppLine").on("click", function() {
+		var win = window.open("${cp}/app/addAppLine", "PopupWin", "width=900,height=500");
+	})
+	
+})
+</script>
+</head>
+
+<body>
+
+
+<form id="appDatailFrm"  method="get">
+	<input type="hidden" id="app_char" name="app_char">
+</form>
+
+<form id="appfrm" action="${cp}/app/registApp" method="get">
+	<input type="hidden" name="emp_no" value="${S_USER.emp_no}">
+	<input type="hidden" id="app_div_no" name="app_div_no">
+	<input type="hidden" id="app_det_no" name="app_det_no">
+</form>
+
+<h1 style="text-align: center;">결재</h1>
+<hr style="color: black;">
+<div>
+<button type="button" id="registAppDocument" class="btn btn-primary btn-3d">일반문서</button>
+<button type="button" id="registAppVacation" class="btn btn-primary btn-3d">휴가</button>
+<button type="button" id="saveAppList" class="btn btn-primary btn-3d">임시저장함</button>
+<button type="button" id="appList" class="btn btn-primary btn-3d">결재함</button>
+<button type="button" id="addAppLine" class="btn btn-primary btn-3d">개인결재선 생성</button>
+<hr>
+
+</div>
+
+<div id="appSelect">
+</div>
+<div id="appTable">
+</div>
+<div id="pagination">
+	
+</div>
+</body>

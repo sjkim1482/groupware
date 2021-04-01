@@ -1,0 +1,1052 @@
+package kr.or.ddit.groupware.contoller;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+import javax.inject.Inject;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.ui.ModelMap;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.itextpdf.text.pdf.PdfStructTreeController.returnType;
+
+import kr.or.ddit.common.model.PageVo;
+import kr.or.ddit.groupware.model.BoardVo;
+import kr.or.ddit.groupware.model.DeptVo;
+import kr.or.ddit.groupware.model.EmpVo;
+import kr.or.ddit.groupware.model.JobVo;
+import kr.or.ddit.groupware.model.OnOffVo;
+import kr.or.ddit.groupware.service.BoardService;
+import kr.or.ddit.groupware.service.EmpService;
+import kr.or.ddit.groupware.service.OnOffService;
+import kr.or.ddit.groupware.service.VacationServiceI;
+import kr.or.ddit.groupware.util.FileUtil;
+import net.sf.jxls.exception.ParsePropertyException;
+import net.sf.jxls.transformer.XLSTransformer;
+
+@Controller
+@RequestMapping("empController")
+public class EmpController {
+
+	private static final Logger logger = LoggerFactory.getLogger(EmpController.class);
+
+	private static List<EmpVo> loginEmpList = new ArrayList<EmpVo>();
+	
+//	public static List<EmpVo> chatEmpList = new ArrayList<EmpVo>();
+	public static List<Integer> checkEmpList = new ArrayList<Integer>();
+	
+	@Resource(name="empService")
+	private EmpService empService;
+	
+	@Resource(name="boardService")
+	private BoardService boardService;
+	
+	@Resource(name="onoffService")
+	private OnOffService onoffService;
+	
+	@Resource(name="vacationService")
+	private VacationServiceI vacService;
+	
+	//시큐리티 pw암호화
+	@Inject
+	BCryptPasswordEncoder pwdEncode;
+	
+	//로그인화면
+	@RequestMapping("loginView")
+	public String loginView() {
+		return "admin/login";
+	}
+	
+	
+	//로그인
+	@RequestMapping(path="loginProcess", method = RequestMethod.POST)
+	public String loginProcess(EmpVo empVo, HttpSession session, HttpServletRequest request , RedirectAttributes ra, Model model, PageVo pageVo) {
+		
+		EmpVo dbUser = empService.selectUser(empVo.getEmp_id());
+		if(dbUser == null) {
+			return "redirect:/empController/loginView";
+		}
+		logger.debug("dbUserPass:{}", dbUser.getPass());
+		//암호화 pw체크
+		boolean pwdMatch = pwdEncode.matches(empVo.getPass(), dbUser.getPass());
+		logger.debug("pwdMatch:{}", pwdMatch);
+//		if(dbUser != null && empVo.getPass().equals(dbUser.getPass())) {
+		if(dbUser != null && pwdMatch == true) {
+			session.setAttribute("S_USER", dbUser);
+			model.addAttribute("userList", empService.selectPagingUser(pageVo));
+			
+			
+			List<BoardVo> board = boardService.selectEmpBoard(dbUser.getEmp_no());
+			session.setAttribute("boardLeft", board);
+			
+			boolean loginFlag = true;
+			
+			EmpVo loginUser = empService.selectEmpDetail(dbUser.getEmp_no());
+			
+			for(int i = 0; i<loginEmpList.size();i++) {
+				if(loginEmpList.get(i).getEmp_no()==loginUser.getEmp_no()) {
+					loginFlag = false;
+				}
+			}
+			if(loginFlag) {
+				loginEmpList.add(loginUser);				
+			}
+			request.getServletContext().setAttribute("loginEmpList", loginEmpList);
+			
+			//개인정보동의 상태(140=미동의 , 141=동의)
+			if(dbUser.getPer_info_agr_cd() == 140) {
+				return "admin/personalInformation";
+			}else {
+				return "redirect:/test/main";
+			}
+			
+		}else {	
+			return "redirect:/empController/loginView";
+		}
+	}
+	
+	//로그아웃
+	@RequestMapping(path = "logout",method = RequestMethod.GET)
+	public String logout(int emp_no, HttpSession session) {
+		session.invalidate();
+		for(int i = 0; i<loginEmpList.size(); i++) {
+			if(loginEmpList.get(i).getEmp_no()==emp_no) {
+				loginEmpList.remove(i);
+				break;
+			}
+		}
+		return "redirect:/empController/loginView";
+	}
+	
+	//개인정보 동의 업데이트
+	@RequestMapping(path = "AgreeModify", method = RequestMethod.POST)
+	public String AgreeModify(Model model, int emp_no) {
+		int agreeCnt = 0;
+		
+		try {
+			agreeCnt = empService.agreeModify(emp_no);
+		} catch (Exception e) {
+			agreeCnt = 0;
+			e.printStackTrace();
+		}
+		
+		if(agreeCnt == 1) {
+			return "redirect:/test/main";
+		}else {
+			return "redirect:/empController/loginProcess";
+		}
+		
+	}
+	 
+	//인사정보 리스트 , chart api
+	@RequestMapping("empinformation")
+	public String empinformation(PageVo pageVo, Model model) {
+	
+		Map<String, Object> map = empService.selectPagingUser(pageVo);
+		
+		model.addAllAttributes(map);
+		
+		//부서별 chart(부서명,count)
+		model.addAttribute("chartList", empService.selectChartDept());
+		//직급별 chart(직급명,count)
+		model.addAttribute("chartList2", empService.selectChartPo());
+		//성별 chart(성별,count)
+		model.addAttribute("chartList3", empService.selectChartGender());
+		//재직별 chart(재직상태,count)
+		model.addAttribute("chartList4", empService.selectChartServe());
+		
+		return "tiles.admin.userlist";	
+	}
+	
+	//인사정보 페이징AjaxHtml
+	@RequestMapping("pagingUserAjaxHtml")
+	public String pagingUserAjaxHtml(@RequestParam(defaultValue = "1") int page,
+									@RequestParam(defaultValue = "15") int pageSize, String keyword,
+									Model model) {
+		
+		PageVo pageVo = new PageVo(page, pageSize);
+		pageVo.setKeyword(keyword);
+		logger.debug("keyword : {}",keyword);
+
+		if(pageVo.getKeyword() != null) {
+			model.addAllAttributes(empService.searchPagingEmp(pageVo));
+		}else {
+			model.addAllAttributes(empService.selectPagingUser(pageVo));
+
+		}
+		return "/admin/pagingUserAjaxHtml";
+	}
+	
+	//인사정보 상세조회Ajax
+	@RequestMapping("detailUserAjax")
+	public String detailUserAjax(int emp_no, Model model) {
+		
+		logger.debug("emp_no : {}", emp_no);
+		
+		EmpVo empList = new EmpVo();
+		empList.setEmp_no(emp_no);
+		
+		EmpVo detailUser = empService.detailUserAjax(empList);
+		
+		logger.debug("empVo : {}", detailUser);
+		
+		model.addAttribute("detailUser", detailUser);
+		
+		return "/admin/detailUserAjaxHtml";
+	}
+	
+	//사원정보 수정페이지이동
+	@RequestMapping(path = "userModifyAjax", method = RequestMethod.GET)
+	public String userModifyAjax(EmpVo empVo, int emp_no, Model model){
+		
+		EmpVo empList = new EmpVo();
+		empList.setEmp_no(emp_no);
+		
+		EmpVo detailUser = empService.detailUserAjax(empList);
+		
+		logger.debug("empVo : {}", detailUser);
+		
+		//부서명
+		model.addAttribute("deptNm", empService.selectDeptNm());
+		//성별
+		model.addAttribute("genderNm", empService.selectGenderNm());
+		//재직코드
+		model.addAttribute("serveNm", empService.selectServeNm());
+		//직급
+		model.addAttribute("poNm", empService.selectPoNm());
+		//직무
+		model.addAttribute("jobNm", empService.selectJobNm());
+		
+		model.addAttribute("detailUser", detailUser);
+		return "/admin/userModifyAjaxHtml";
+	}
+	
+	//사원정보수정
+	@RequestMapping(path = "userModifyAjax", method = RequestMethod.POST)
+	public String userModifyAjax(EmpVo empVo,JobVo jobVo, int emp_no, Model model, MultipartHttpServletRequest request) {
+
+		logger.debug("job:{}", empVo.getJob_cd());
+		
+		List<MultipartFile> fileList = request.getFiles("profile");
+		MultipartFile profile = fileList.get(0);
+		
+		logger.debug("profile :{}", profile);
+		if(profile.getSize() == 0) {
+		        empVo.setProfile_nm(empService.detailUserAjax(empVo).getProfile_nm());
+		        empVo.setProfile_route(empService.detailUserAjax(empVo).getProfile_route());
+		}else {
+			try {
+				empVo.setProfile_nm(profile.getOriginalFilename());
+				String fileExtension = FileUtil.getFileExtension(profile.getOriginalFilename());
+				String realFileName = "d:/upload/"+UUID.randomUUID().toString()+fileExtension;
+				empVo.setProfile_route(realFileName);
+				profile.transferTo(new File(realFileName));
+			} catch (IllegalStateException | IOException e1) {
+				e1.printStackTrace();
+			}
+		}
+		logger.debug("empVo1 : {}",empVo);
+		//사원정보 수정(직무삭제)
+		int deleteCnt = 0;
+		try {
+			deleteCnt = empService.modifyDelete(emp_no);
+		} catch (Exception e) {
+			deleteCnt = -1;
+			e.printStackTrace();
+		}
+		//사원정보 수정(직무등록)
+		logger.debug("empVo2 : {}",empVo);
+		jobVo.setEmp_no(emp_no);
+		int insertCnt = 0;
+		for(int i=0; i<empVo.getJob_cd().size(); i++) {
+			
+			jobVo.setJob_cd(empVo.getJob_cd().get(i));
+			try {
+				insertCnt = empService.modifyInsert(jobVo);
+			} catch (Exception e) {
+				insertCnt = 0;
+				e.printStackTrace();
+			}
+		}
+		
+		logger.debug("empVo3 : {}",empVo);
+		
+		//사원정보 수정업데이트
+		if("".equals(empVo.getPass())) {
+			EmpVo updateVo = empService.detailUserAjax(empVo);
+			empVo.setPass(updateVo.getPass());
+		}
+		
+		int updatCnt = 0;
+		try {
+			//pw암호화
+			String inputPass = empVo.getPass();
+			String pwd = pwdEncode.encode(inputPass);
+			empVo.setPass(pwd);
+			
+			updatCnt = empService.modifyUserAjax(empVo);
+		}catch (Exception e) {
+			updatCnt = 0;
+			e.printStackTrace();
+		}
+		if(updatCnt == 1 && deleteCnt != -1 && insertCnt != 0) {
+			model.addAttribute("detailUser", empService.detailUserAjax(empVo));
+			return "/admin/detailUserAjaxHtml";
+		}else {	
+			model.addAttribute("detailUser", empService.detailUserAjax(empVo));
+			return "/admin/userModifyAjaxHtml";
+		}
+		
+	}
+	
+	//엑셀 다운로드
+	public void download(HttpServletRequest request, HttpServletResponse response, Map<String, Object> bean,
+			String fileName, String templateFile, String string) throws ParsePropertyException, InvalidFormatException {
+
+		// 받아오는 매개변수 bean는 디비에서 뽑아온 데이터
+        // fileName 은 다운로드 받을때 지정되는 파일명
+        // templateFile 는 템플릿 엑셀 파일명이다.
+        
+        // tempPath는 템플릿 엑셀파일이 들어가는 경로를 넣어 준다.
+		String tempPath = request.getSession().getServletContext().getRealPath("/WEB-INF/excel");
+
+		// 별도로 다운로드 만들기 귀찮으까 이런식으로 만들어서 바로 엑셀 생성후 다운 받게 
+		try {
+
+			InputStream is = new BufferedInputStream(new FileInputStream(tempPath + "\\" + templateFile));
+			XLSTransformer xls = new XLSTransformer();
+
+			Workbook workbook = (Workbook) xls.transformXLS(is, bean);
+
+			response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + ".xlsx\"");
+
+			OutputStream os = response.getOutputStream();
+
+			workbook.write(os);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@RequestMapping(value = "downExcel")
+    public void listExcel(HttpServletRequest request, HttpServletResponse response, ModelMap modelMap) throws Exception, Exception {
+
+		// 그냥 평소에 마이바티스에서 데이터 뽑는 방법으로 데이터를 가져온다.
+		List<EmpVo> dataList = (List<EmpVo>) empService.selectAllEmp();
+        
+		// 받은 데이터를 맵에 담는다.
+        Map<String, Object> beans = new HashMap<String, Object>();
+        beans.put("dataList", dataList);
+        
+        // 엑셀 다운로드 메소드가 담겨 있는 객체
+        EmpController me = new EmpController();
+
+        me.download(request, response, beans, "test", "templateFile.xlsx", "");
+    }
+	
+	//프로필
+	@RequestMapping("profile")
+	public void profile(HttpServletResponse resp, String emp_id, HttpServletRequest req) {
+		resp.setContentType("image");
+		
+		// userid 파라미터를 이용하여 userService 객체를 통해 사용자의 사잔 파일 이름을 획득
+		// 파일 입출력을 통해 사진을 읽어들여 resp객체의 outputStream으로 응답 생성
+		
+		EmpVo empVo = empService.selectUser(emp_id);
+		
+		String path = "";
+		if(empVo.getProfile_route() == null) {
+			//	/webapp/image 경로..
+			path = req.getServletContext().getRealPath("/image/unknown.png");
+		}else {
+			path = empVo.getProfile_route();
+		}
+		
+		logger.debug("path : {}", path);
+		
+		FileInputStream fis;
+		
+		try {
+			fis = new FileInputStream(path);
+			ServletOutputStream sos = resp.getOutputStream();
+			
+			byte[] buff = new byte[512];
+			
+			while(fis.read(buff) != -1) {
+				sos.write(buff);
+			}
+			
+			fis.close();
+			sos.close();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@RequestMapping("profileDownload")
+	public void profileDownload(String emp_id, HttpServletRequest req, HttpServletResponse resp) {
+		
+		EmpVo empVo = empService.selectUser(emp_id);
+
+		String path = "";
+		String filename = "";
+		if(empVo.getProfile_route() == null) {
+			//	/webapp/image 경로..
+			path = req.getServletContext().getRealPath("/image/unknown.png");
+			filename = "unknown.png";
+		}else {
+			path = empVo.getProfile_route();
+			filename = empVo.getProfile_nm();
+		}
+		
+		resp.setHeader("Content-Disposition", "attacment; filename=" + filename);
+		
+		logger.debug("path : {}", path);
+		
+		FileInputStream fis;
+		try {
+			fis = new FileInputStream(path);
+			ServletOutputStream sos = resp.getOutputStream();
+			
+			byte[] buff = new byte[512];
+			
+			while(fis.read(buff) != -1) {
+				sos.write(buff);
+			}
+			
+			fis.close();
+			sos.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	//인사등록 jsp이동
+	@RequestMapping(path = "empRegist", method = {RequestMethod.GET})
+	public String userRegistAjax(Model model) {
+		//부서명
+		model.addAttribute("deptNm", empService.selectDeptNm());
+		//성별
+		model.addAttribute("genderNm", empService.selectGenderNm());
+		//재직코드
+		model.addAttribute("serveNm", empService.selectServeNm());
+		//직급
+		model.addAttribute("poNm", empService.selectPoNm());
+		//직무
+		model.addAttribute("jobNm", empService.selectJobNm());
+		
+		return "admin/userRegistAjaxHtml";
+	}
+	
+	//인사등록 save
+	@RequestMapping(path = "empRegist", method = {RequestMethod.POST})
+	public String userReistAjax(Model model, EmpVo empVo, JobVo jobVo, MultipartHttpServletRequest request) {
+		List<MultipartFile> fileList = request.getFiles("profile");
+		MultipartFile profile = fileList.get(0);
+		
+		if("".equals(profile.getOriginalFilename())) {
+			empVo.setProfile_nm("");
+			empVo.setProfile_route("");
+		}else {
+			try {
+				empVo.setProfile_nm(profile.getOriginalFilename());
+				String fileExtension = FileUtil.getFileExtension(profile.getOriginalFilename());
+				String realFileName = "d:/upload/"+UUID.randomUUID().toString()+fileExtension;
+				empVo.setProfile_route(realFileName);
+				profile.transferTo(new File(realFileName));
+			} catch (IllegalStateException | IOException e1) {
+				e1.printStackTrace();
+			}
+		}
+		
+		//인사등록
+		int registCnt = 0;
+		try {
+			
+			//pw암호화
+			String inputPass = empVo.getPass();
+			String pwd = pwdEncode.encode(inputPass);
+			empVo.setPass(pwd);
+			logger.debug("암호화된 비밀번호 : "+ empVo.getPass());
+			
+			registCnt = empService.registEmp(empVo);
+		} catch (Exception e) {
+			registCnt = 0;
+			e.printStackTrace();
+		}
+		
+		//직무등록
+		int j_registCnt = 0;
+		jobVo.setEmp_no(empService.selectEmpno());
+		for(int i=0; i<empVo.getJob_cd().size(); i++) {
+			
+			jobVo.setJob_cd(empVo.getJob_cd().get(i));
+			logger.debug("jobVo : {}", jobVo);
+			try {
+				j_registCnt = empService.modifyInsert(jobVo);
+			} catch (Exception e) {
+				j_registCnt = 0;
+				e.printStackTrace();
+			}
+		}
+		
+		if(registCnt == 1 && j_registCnt != 0) {
+			int emp_no = empService.selectEmpno();
+			return "redirect:/empController/detailUserAjax?emp_no="+emp_no;
+		}else {
+			return "redirect:/empController/empinformation";
+		}
+	}
+	
+	//인사등록(id중복체크)
+	@RequestMapping("selectEmpidCheck")
+	public String selectEmpidCheck(Model model,String emp_id) {
+		model.addAttribute("emp_idCheck", empService.selectEmpidCount(emp_id));
+		
+		return "jsonView";
+	}
+	
+	//인사 조직도 jsp이동
+	@RequestMapping(path = "organizationChart")
+	public String organizationChart(Model model) {
+		model.addAttribute("deptList", empService.selectDept());
+		logger.debug("deptVo : {}",empService.selectDept());
+		model.addAttribute("organizationList", empService.selectOrganization());
+		return "tiles.admin.organizationChart";
+	}
+	
+	
+	//인사 조직도 상세조회Ajax
+	@RequestMapping("detailOrganizationAjaxHtml")
+	public String detailUserAjax2(int emp_no, Model model) {
+			
+		logger.debug("emp_no : {}", emp_no);
+		
+		EmpVo empList = new EmpVo();
+		empList.setEmp_no(emp_no);
+		
+		EmpVo detailUser = empService.detailUserAjax(empList);
+		
+		logger.debug("empVo : {}", detailUser);
+		
+		model.addAttribute("detailUser", detailUser);
+		
+		return "/admin/detailOrganizationAjaxHtml";
+	}
+	
+	//부서등록(조직도)
+	@RequestMapping(path = "registDept", method = RequestMethod.POST)
+	public String registDept(Model model, DeptVo deptVo) {
+		int deptCnt = 0;
+		
+		try {
+			deptCnt = empService.registDept(deptVo);
+		} catch (Exception e) {
+			deptCnt=0;
+			e.printStackTrace();
+		}
+		
+		if(deptCnt == 1) {
+			return "redirect:/empController/organizationChart";
+		}else {
+			return "";
+		}
+	}
+	
+	//부서삭제(조직도)
+	@RequestMapping(path = "deleteDept", method = RequestMethod.POST)
+	public String deleteDept(Model model, DeptVo deptVo) {
+		int deleteCnt = 0;
+		try {
+			deleteCnt = empService.deleteDept(deptVo);
+		} catch (Exception e) {
+			deleteCnt = -1;
+			e.printStackTrace();
+		}
+		if(deleteCnt == 1) {
+			return "redirect:/empController/organizationChart";
+		}else {
+			return"";
+		}
+			
+	}
+	
+	//부서수정(조직도)
+	@RequestMapping(path = "modifyDept", method = RequestMethod.POST)
+	public String modifyDept(Model model, DeptVo deptVo) {
+		int modifyCnt = 0;
+		try {
+			modifyCnt = empService.modifyDept(deptVo);
+		} catch (Exception e) {
+			modifyCnt = 0;
+		}
+		
+		if(modifyCnt == 1) {
+			return "redirect:/empController/organizationChart";
+		}else {
+			return "";
+		}
+	}
+	
+	
+	
+	//----------------------근태정보----------------------------------------------
+	// 근태정보 jsp로 이동
+	@RequestMapping("emponoff")
+	public String emponoff(int emp_no, String emp_id, PageVo pageVo, Model model) {
+		
+		Map<String, Object> map = onoffService.selectOnOffPaging(pageVo);
+		int pagination = (int) map.get("pagination");
+		
+		int attendCnt = onoffService.checkAttendCnt(emp_no);
+		
+		OnOffVo onVo = new OnOffVo(); 
+		OnOffVo onVo1 = new OnOffVo(); 		
+		
+		try {
+			onVo = onoffService.checkOffTime(emp_no);
+			onVo1 = onoffService.selectWorktime(emp_no);
+			model.addAttribute("offTime", onVo.getOffwork_time());
+			model.addAttribute("workTime", onVo1.getAttend_time());
+		} catch (Exception e) {
+			model.addAttribute("hi", "-");
+		}
+		
+		if(attendCnt == 0) {
+			model.addAttribute("attendCnt", 0);
+		}else {
+			model.addAttribute("attendCnt", 1);
+		}
+		
+		model.addAttribute("workStatus", onoffService.selectWorkStatus());
+		model.addAttribute("emp_no", emp_no);
+		model.addAttribute("emp_id", emp_id);
+		model.addAttribute("pagination", pagination);
+		model.addAttribute("pageVo", pageVo);
+		
+		return "tiles.admin.onofflist";
+	}
+	
+	// 근태 페이징 리스트
+	@RequestMapping(value="pagingOnOffAjaxHtml")		
+	public String pagingOnOffAjaxHtml(@RequestParam(defaultValue = "1") int page,
+									  @RequestParam(defaultValue = "15") int pageSize,
+									  int emp_no, String emp_id,Model model, String data1, String data2,
+									  String date1, String date2) {
+		
+		logger.debug("pagingOnOffAjaxHtml() ====================================== \n");
+		
+		Date today = new Date();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+		String today1 = sdf.format(today);
+		
+		logger.debug("date1 : {}, data2 : {}", date1, date2);
+		
+		
+		String date11 = "";
+		String date22 = "";
+		
+		if(date1 != null && date2 != null) {
+			date11 = date1.replaceAll("-", "");
+			date22 = date2.replaceAll("-", "");			
+		}
+	
+		logger.debug("date11 : {}, data22 : {}", date11, date22);
+		
+		String datas1 = "%%";
+		String datas2 = "%%";
+		
+		// 일반 페이징 맵 
+		Map<String, Object> map = new HashMap<>();
+		map.put("page", page);
+		map.put("pageSize", pageSize);
+		map.put("emp_no", emp_no);
+		
+		PageVo pageVo = new PageVo(page, pageSize);
+		
+		// 일반 페이징 맵 카운트
+		Map<String, Object> map1 = new HashMap<>();
+		map1.put("page", page);
+		map1.put("pageSize", pageSize);
+		
+		if(data1 == null || data1.equals("")) {
+			map1.put("data1", datas1);
+		}else {
+			map1.put("data1", "%" + data1 + "%");
+		}
+		
+		if(data2 == null || data2.equals("")) {
+			map1.put("data2", datas2);
+		}else {
+			map1.put("data2","%" + data2 + "%");			
+		}
+		
+		// 날짜
+		if(date1 == null || date1.equals("") && date2 == null || date2.equals("")) {
+			map1.put("date1", "19700101");
+			map1.put("date2", today1);
+		}else {
+			map1.put("date1", date11);
+			map1.put("date2", date22);
+		}
+		
+		// 디테일 페이징 맵
+		Map<String, Object> map3 = new HashMap<>();
+		map3.put("page", page);
+		map3.put("pageSize", pageSize);
+		map3.put("emp_no", emp_no);
+		// 날짜
+		if(date1 == null || date1.equals("") && date2 == null || date2.equals("")) {
+			map3.put("date1", "19700101");
+			map3.put("date2", today1);
+		}else {
+			map3.put("date1", date11);
+			map3.put("date2", date22);
+		}
+		
+		// 디테일 카운트 맵
+		Map<String, Object> map4 = new HashMap<>();
+		map4.put("emp_no", emp_no);
+		// 날짜
+		if(date1 == null || date1.equals("") && date2 == null || date2.equals("")) {
+			map4.put("date1", "19700101");
+			map4.put("date2", today1);
+		}else {
+			map4.put("date1", date11);
+			map4.put("date2", date22);
+		}
+		
+		// 카운트 맵
+		Map<String, Object> map2 = new HashMap<>();
+		
+		if(data1 == null || data1.equals("")) {
+			map2.put("data1", datas1);
+		}else {
+			map2.put("data1", "%" + data1 + "%");
+		}
+		if(data2 == null || data2.equals("")) {
+			map2.put("data2", datas2);
+		}else {
+			map2.put("data2","%" + data2 + "%");			
+		}
+		
+		// 날짜
+		if(date1 == null || date1.equals("") && date2 == null || date2.equals("")) {
+			map2.put("date1", "19700101");
+			map2.put("date2", today1);
+		}else {
+			map2.put("date1", date11);
+			map2.put("date2", date22);
+		}
+		
+		int attendCnt = 0;
+		
+		int pagingCnt = 0;
+		
+		// 검색하기
+		attendCnt = onoffService.checkAttendCnt(emp_no);
+		if(emp_no == 0) {
+			model.addAllAttributes(onoffService.selectOnOffPaging(pageVo));			
+		}else {
+			model.addAllAttributes(onoffService.selectOnOffDetailPaging(map));				
+		}
+		
+		int detailPagingCnt = 0;
+		
+		if(emp_no == 0) {
+			model.addAttribute("onofflist", onoffService.searchOnoffPaging(map1));
+			pagingCnt = onoffService.searchPagingCnt(map2);	
+			int pagination = (int)Math.ceil( (double)pagingCnt / pageSize);			
+			model.addAttribute("pagination", pagination);
+			model.addAttribute("pageVo", pageVo);
+			
+			model.addAttribute("data1", data1);
+			model.addAttribute("data2", date2);
+				
+		}else {
+			model.addAttribute("onoffDetaillist", onoffService.searchDetailPaging(map3));
+			detailPagingCnt = onoffService.searchDetailPagingCnt(map4);
+			int pagination = (int)Math.ceil( (double)detailPagingCnt / pageSize);
+			model.addAttribute("pagination1", pagination);
+			model.addAttribute("pageVo1", pageVo);
+		
+		}
+		
+		if(attendCnt == 0) {
+			model.addAttribute("attendCnt", 0);
+		}else {
+			model.addAttribute("attendCnt", 1);
+		}
+	
+		return "ajax/pagingOnOffAjaxHtml";
+	}
+	
+	// 근태 상세조회 
+	@RequestMapping("onoffDetail")
+    public String OnOffDetail(String emp_id, int emp_no, Model model) {
+		
+		logger.debug("OnOffDetail() ==================== ");
+		
+		PageVo pageVo = new PageVo(1, 10);
+		
+		logger.debug("emp_no : {}", emp_no);
+		
+		Map<String, Object> map1 = new HashMap<>();
+		map1.put("emp_no", emp_no);
+		map1.put("page", 1);
+		map1.put("pageSize", 10);
+		
+		Map<String, Object> map = onoffService.selectOnOffDetailPaging(map1);
+		List<OnOffVo> ononffdetaillist = (List<OnOffVo>)map.get("onoffDetaillist");
+		
+		int pagination = (int)map.get("pagination1");
+
+		model.addAttribute("onoffVo", onoffService.selectonoff(emp_no));
+		model.addAttribute("onoffDetaillist", ononffdetaillist); 
+		model.addAttribute("pageVo1", pageVo);
+		model.addAttribute("pagination1", pagination);
+		model.addAttribute("emp_no", emp_no);
+		
+		return "admin/onoffDetail";
+    }
+	
+	// 근태 상제조회 페이징 리스트
+	@RequestMapping("pagingOnOffDetailAjaxHtml")
+	public String pagingOnOffDetailAjaxHtml(@RequestParam(defaultValue = "1") int page,
+									  @RequestParam(defaultValue = "10") int pageSize,
+									  int emp_no, String date1, String date2,
+									  Model model) {
+			
+		Date today = new Date();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+		String today1 = sdf.format(today);
+		
+		PageVo pageVo = new PageVo(page, pageSize);
+		
+		String date11 = "";
+		String date22 = "";
+		
+		if(date1 != null && date2 != null) {
+			date11 = date1.replaceAll("-", "");
+			date22 = date2.replaceAll("-", "");			
+		}
+	
+		logger.debug("date11 : {}, data22 : {}", date11, date22);
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("page", page);
+		map.put("pageSize", pageSize);
+		map.put("emp_no", emp_no);
+		map.put("pageVo", pageVo);
+		
+		int detailPagingCnt = 0;
+		// 디테일 페이징 맵
+		Map<String, Object> map3 = new HashMap<>();
+		map3.put("page", page);
+		map3.put("pageSize", pageSize);
+		map3.put("emp_no", emp_no);
+		// 날짜
+		if(date1 == null || date1.equals("") && date2 == null || date2.equals("")) {
+			map3.put("date1", "19700101");
+			map3.put("date2", today1);
+		}else {
+			map3.put("date1", date11);
+			map3.put("date2", date22);
+		}
+				
+		// 디테일 카운트 맵
+		Map<String, Object> map4 = new HashMap<>();
+		map4.put("emp_no", emp_no);
+		// 날짜
+		if(date1 == null || date1.equals("") && date2 == null || date2.equals("")) {
+			map4.put("date1", "19700101");
+			map4.put("date2", today1);
+		}else {
+			map4.put("date1", date11);
+			map4.put("date2", date22);
+		}
+		
+		model.addAttribute("onoffDetaillist", onoffService.searchDetailPaging(map3));
+		detailPagingCnt = onoffService.searchDetailPagingCnt(map4);
+		int pagination = (int)Math.ceil( (double)detailPagingCnt / pageSize);
+		model.addAttribute("pagination1", pagination);
+		model.addAttribute("pageVo1", pageVo);
+		
+		logger.debug("pagination : {}", pagination);
+
+		return "ajax/pagingOnOffDetailAjaxHtml";
+	}
+
+	// 근태 엑셀 다운
+	@RequestMapping("onofflistExcel")
+	public void onofflistExcel(HttpServletRequest request, HttpServletResponse response, ModelMap modelMap)
+			throws Exception, Exception {
+
+		// 그냥 평소에 마이바티스에서 데이터 뽑는 방법으로 데이터를 가져온다.
+		List<OnOffVo> onoffList = onoffService.selectOnOfflist();
+
+		// 받은 데이터를 맵에 담는다.
+		Map<String, Object> beans = new HashMap<String, Object>();
+		beans.put("onoffList", onoffList);
+
+		// 엑셀 다운로드 메소드가 담겨 있는 객체
+		EmpController me = new EmpController();
+
+		me.download(request, response, beans, "AllOnOffList", "onoffTemplate.xlsx", "");
+
+	}
+
+	// 근태상세 엑셀다운
+	@RequestMapping("onoffDetailExcel")
+	public void onoffDetailExcel(HttpServletRequest request, HttpServletResponse response, ModelMap modelMap,
+			int emp_no) throws Exception, Exception {
+
+		logger.debug("emp_no : {}", emp_no);
+
+		// 그냥 평소에 마이바티스에서 데이터 뽑는 방법으로 데이터를 가져온다.
+		List<OnOffVo> onoffList = onoffService.selectOnOffDetaillist(emp_no);
+
+		// 받은 데이터를 맵에 담는다.
+		Map<String, Object> beans = new HashMap<String, Object>();
+		beans.put("onoffList", onoffList);
+
+		// 엑셀 다운로드 메소드가 담겨 있는 객체
+		EmpController me = new EmpController();
+
+		me.download(request, response, beans, "PersonalOnOffList", "onoffTemplate.xlsx", "");
+
+	}
+	
+//---------------------------------------------사원------------------------------------------
+	@RequestMapping("empMyPage")
+	public String myPage(Model model, int emp_no) {
+		
+		model.addAttribute("empDetail", empService.selectEmpDetail(emp_no));
+		logger.debug("emp_no : {}", empService.selectEmpDetail(emp_no));
+		return "tiles.emp.myPage";
+	}
+	
+	//인사 조직도 jsp이동
+		@RequestMapping(path = "empOrganizationChart")
+		public String emporganizationChart(Model model) {
+			model.addAttribute("deptList", empService.selectDept());
+			logger.debug("deptVo : {}",empService.selectDept());
+			model.addAttribute("organizationList", empService.selectOrganization());
+			return "tiles.emp.empOrganizationChart";
+		}
+		
+		
+	//인사 조직도 상세조회Ajax
+	@RequestMapping("empDetailOrganizationAjaxHtml")
+	public String empdetailUserAjax2(int emp_no, Model model) {
+				
+		logger.debug("emp_no : {}", emp_no);
+			
+		EmpVo empList = new EmpVo();
+		empList.setEmp_no(emp_no);
+			
+		EmpVo detailUser = empService.detailUserAjax(empList);
+			
+		logger.debug("empVo : {}", detailUser);
+			
+		model.addAttribute("detailUser", detailUser);
+			
+		return "/emp/empDetailOrganizationAjaxHtml";
+	}
+	
+	//본인확인 password확인
+	@RequestMapping(path = "selectPass", method = RequestMethod.POST)
+	public String selectPass(String emp_id, int emp_no, String pass, Model model) {
+
+		EmpVo empVo = new EmpVo();
+		empVo.setEmp_no(emp_no);
+		empVo.setPass(pass);
+		empVo.setEmp_id(emp_id);
+		
+		EmpVo empidCheck = empService.selectUser(empVo.getEmp_id());
+		
+		//암호화 pw체크
+		boolean pwdMatch = pwdEncode.matches(empVo.getPass(), empidCheck.getPass());
+		model.addAttribute("pwdMatch", pwdMatch);
+
+		logger.debug("empVo:{}",empService.selectPassCount(empVo));
+		int passCnt = empService.selectPassCount(empVo);
+		model.addAttribute("passCnt", passCnt);
+
+		return "jsonView";
+	}
+	
+	//수정jsp이동
+	@RequestMapping("empModifyAjaxHtml")
+	public String empModifyAjaxHtml(Model model, int emp_no, EmpVo empvo) {
+		EmpVo empList = new EmpVo();
+		empList.setEmp_no(emp_no);
+		
+		EmpVo detailUser = empService.detailUserAjax(empList);
+		
+		logger.debug("empVo : {}", detailUser);
+		
+		model.addAttribute("detailUser", detailUser);
+		return "tiles.emp.empModifyAjaxHtml";
+	}
+	
+	//password변경
+	@RequestMapping("modifyEmp")
+	public String modifyEmp(EmpVo empVo, Model model){
+		
+		int modifyCnt = 0;
+		try {
+			//pw암호화
+			String inputPass = empVo.getPass();
+			String pwd = pwdEncode.encode(inputPass);
+			empVo.setPass(pwd);
+			
+			modifyCnt = empService.modifyEmp(empVo);
+		} catch (Exception e) {
+			modifyCnt = 0;
+			e.printStackTrace();
+		}
+		
+		if(modifyCnt == 1) {
+			return"redirect:/empController/empMyPage?emp_no="+ empVo.getEmp_no();
+		}else {
+			return "redirect:/empController/empModifyAjaxHtml?emp_no="+ empVo.getEmp_no();
+		}
+	}
+	
+	
+	
+}

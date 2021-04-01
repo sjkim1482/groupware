@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+  <mapper namespace="popup">
+  
+	<!-- 공지사항 팝업 등록 -->
+	<insert id="insertPopup" parameterType="popUpVo">
+		insert into popup values (#{popup_no},#{title},#{s_time},#{e_time},1,#{cont})
+	</insert>
+	
+	<!-- 공지사항 팝업 선택 -->
+	<select id="selectPopup" resultType="popUpVo" parameterType="int">
+		select * from popup where popup_no=#{popup_no}
+	</select>
+	
+	<!-- 메인화면에 팝업 보이기 -->
+	<select id="selectPopUpList" parameterType="int" resultType="popUpVo"> 
+		SELECT p.popup_no popup_no, p.title title, p.s_time s_time, p.e_time e_time, p.act_cd act_cd, b.cont cont
+		FROM popup p, post b
+		WHERE b.post_no = p.popup_no
+		AND TO_CHAR(SYSDATE,'yyyy-mm-dd') BETWEEN TO_CHAR(p.S_TIME,'yyyy-mm-dd') AND TO_CHAR(p.E_TIME,'yyyy-mm-dd') AND p.act_cd = 1 and popup_no=#{popup_no}
+	</select>
+	 
+	 <!-- 메인화면에 팝업 보이기 -->
+	<select id="selectTodayPopUpList"  resultType="popUpVo"> 
+		SELECT p.popup_no popup_no, p.title title, p.s_time s_time, p.e_time e_time, p.act_cd act_cd, b.cont cont
+		FROM popup p, post b
+		WHERE b.post_no = p.popup_no
+		AND TO_CHAR(SYSDATE,'yyyy-mm-dd') BETWEEN TO_CHAR(p.S_TIME,'yyyy-mm-dd') AND TO_CHAR(p.E_TIME,'yyyy-mm-dd') AND p.act_cd = 1
+	</select>
+
+	<!-- 팝업관리 : 팝업 삭제 -->
+	<delete id="deletePopup" parameterType="popUpVo">
+		delete popup
+		where popup_no=#{popup_no}
+	</delete>
+	
+	<!-- 팝업 리스트 -->
+	<select id="popupListView" resultType="popUpVo">
+		SELECT * FROM popup
+	</select>
+	
+	 <!-- 팝업 상세보기 -->
+	 <select id="popupDetail" resultType="popUpVo" parameterType="int">
+		SELECT p.popup_no popup_no, p.title title, p.s_time s_time, p.e_time e_time, p.act_cd act_cd, b.cont cont
+		FROM popup p, post b
+		WHERE b.post_no = p.popup_no
+		and p.popup_no=#{popup_no}
+	 </select>
+  
+  </mapper>
+  

@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="app">
+	<select id="userInfoList" resultType="empVo" parameterType="pageVo">
+		SELECT *
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT dept_nm, cd_ko_nm, ko_nm, emp_no
+		          FROM emp e, comm_cd c, dept d
+                  WHERE e.PO_cd = c.COMM_NO
+                  AND e.dept_no = d.dept_no
+		          ORDER BY emp_id
+		          ) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<select id="appCnt" resultType="int">
+		SELECT COUNT(*)+1 count
+		FROM app
+	</select>
+	<!-- 결재 상신 / 임시저장 -->
+	<insert id="registApp" parameterType="appVo">
+		INSERT INTO app VALUES(#{app_char},#{emp_no},#{app_det_no},#{title},SYSDATE,'','',#{cont},'',#{app_sta_cd})
+	</insert>
+	<!-- 프로젝트 기안 상신 -->
+	<insert id="registProjectApp" parameterType="appVo">
+		INSERT INTO app VALUES(#{app_char},#{emp_no},#{app_det_no},#{title},SYSDATE,#{s_dt},#{e_dt},#{cont},'',#{app_sta_cd})
+	</insert>
+	<!-- 휴가 기안 상신 -->
+	<insert id="registALApp" parameterType="appVo">
+		INSERT INTO app VALUES(#{app_char},#{emp_no},#{app_det_no},#{title},SYSDATE,#{s_dt},#{e_dt},#{cont},'',#{app_sta_cd})
+	</insert>
+	
+	<!-- 임시저장에 상신 -->
+	<update id="registTempApp" parameterType="appVo">
+		UPDATE app SET title = #{title}, cont=#{cont},reg_dt = SYSDATE,app_sta_cd = #{app_sta_cd} WHERE app_char = #{app_char}
+	</update>
+	<!-- 임시저장 기안서 삭제 -->
+	<update id="deleteApp" parameterType="String">
+		UPDATE app SET app_sta_cd = 2 WHERE app_char = #{app_char}
+	</update>
+	
+	<insert id="registAppLine" parameterType="appLineVo">
+		INSERT INTO app_line VALUES(#{app_char},#{emp_no},#{app_cd},#{befo_app_cd},#{fin_app_cd},'',#{app_step})
+	</insert>
+	
+	<update id="updateAppLine" parameterType="appLineVo">
+		UPDATE app_line SET app_cd = #{app_cd}, befo_app_cd = #{befo_app_cd}, fin_app_cd = #{fin_app_cd}, app_step = #{app_step}
+		WHERE emp_no = #{emp_no} AND app_char = #{app_char}
+	</update>
+	
+	
+	<select id="appWaitingList" resultType="appLineVo" parameterType="pageVo">
+		SELECT *
+        FROM app_line
+        WHERE emp_no = #{emp_no}
+        AND befo_app_cd=301 AND app_cd=302
+        ORDER BY app_char DESC
+		       
+	</select>
+	
+	<select id="appWaitingCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM app_line
+  		WHERE emp_no = #{emp_no}
+  		AND befo_app_cd=301 AND app_cd=302
+	</select>
+	
+	<select id="appWaitingListView" parameterType="appLineVo" resultType="appVo">
+		select app_char, ko_nm, app_det_title, reg_dt, title
+		from app a, emp e, app_det_div d
+		where a.emp_no = e.emp_no
+		and d.app_det_no = a.app_det_no
+		and app_char = #{app_char}
+	</select>
+	<!-- 기안서 내용 -->
+	<select id="appCont" resultType="String" parameterType="String">
+		SELECT cont
+		FROM app
+		WHERE app_char = #{app_char}
+	</select>
+	
+	<!-- 기안서 반려사유 -->
+	<select id="appTurnRea" resultType="String" parameterType="String">
+		SELECT turn_rea
+		FROM app
+		WHERE app_char = #{app_char}
+	</select>
+	
+	<!-- 기안서 상세정보 -->
+	<select id="appDetail" parameterType="String" resultType="appVo">
+		SELECT distinct(a.app_char) app_char, reg_dt, ko_nm,  title, app_det_title, dept_nm, app_sta_cd, a.app_det_no app_det_no, s_dt, e_dt, a.emp_no emp_no
+		FROM app a, emp e, app_line l, app_det_div d, dept p
+		WHERE a.APP_CHAR=l.APP_CHAR
+		AND a.emp_no=e.emp_no
+		AND a.app_det_no = d.app_det_no
+		AND e.dept_no = p.dept_no
+		AND a.app_char = #{app_char}
+	</select>
+	<!-- 기안서 임시저장 상세정보 -->
+	<select id="appTempDetail" parameterType="String" resultType="appVo">
+		SELECT distinct(a.app_char) app_char, reg_dt, ko_nm,  title, app_det_title, dept_nm,e.emp_no emp_no,a.app_det_no app_det_no,app_div_no
+		FROM app a, emp e, app_det_div d, dept p
+		WHERE a.emp_no=e.emp_no
+		AND a.app_det_no = d.app_det_no
+		AND e.dept_no = p.dept_no
+		AND a.app_char = #{app_char}
+	</select>
+	
+	<select id="appDetailLine" parameterType="String" resultType="appLineVo">
+		SELECT a.app_cd app_cd, ko_nm, c.cd_ko_nm cd_ko_nm, app_step, e.emp_no emp_no
+		FROM app_line a, emp e, dept d, comm_cd c
+		WHERE a.emp_no = e.emp_no 
+		AND e.dept_no = d.dept_no
+		AND e.po_cd = c.comm_no
+		AND app_char = #{app_char}
+		ORDER BY app_step
+	</select>
+	<!-- 최종 기안서 처리 -->
+	<update id="completeApp" parameterType="appLineVo">
+		UPDATE app SET app_sta_cd=#{app_sta_cd}, turn_rea=#{turn_rea}
+		WHERE app_char = #{app_char}
+	</update>
+	<!-- 마지막 결재자 승인 -->
+	<update id="finalAckApp" parameterType="appLineVo">
+		UPDATE app_line SET app_cd=301, fin_app_cd = 301
+		WHERE emp_no = #{emp_no} AND app_char = #{app_char}
+	</update>
+	<!-- 결재 승인 -->
+	<update id="ackApp" parameterType="appLineVo">
+		UPDATE app_line SET app_cd=301 
+		WHERE emp_no = #{emp_no} AND app_char = #{app_char}
+	</update>
+	<!-- 결재 승인후 다음 승인자에게 문서전달 -->
+	<update id="beforeAckApp" parameterType="appLineVo">
+		UPDATE app_line SET befo_app_cd=301 
+		WHERE app_char = #{app_char} AND app_step = #{app_step}
+	</update>
+	<!-- 결재선 단계확인 -->
+	<select id="checkAppStep" resultType="int" parameterType="appLineVo">
+		SELECT MAX(app_step)
+		FROM app_line
+		WHERE app_char = #{app_char}
+	</select>
+	<!-- 직원의 현재 결재선 단계 확인 -->
+	<select id="checkMyAppStep" parameterType="appLineVo" resultType="int">
+		SELECT app_step
+		FROM app_line
+		WHERE app_char = #{app_char} AND emp_no = #{emp_no}
+	</select>
+	
+	<!-- 반려 -->
+	<update id="comApp" parameterType="appLineVo">
+		UPDATE app_line SET app_cd = 303
+		WHERE emp_no = #{emp_no} AND app_char = #{app_char}
+	</update>
+	<!-- 반려 결재선 최종처리 -->
+	<update id="finalComApp" parameterType="appLineVo">
+		UPDATE app_line SET fin_app_cd = 303
+		WHERE app_step = #{app_step} AND app_char = #{app_char}
+	</update>
+	<!-- 전결처리 -->
+	<update id="preApp" parameterType="appLineVo">
+		UPDATE app_line SET app_cd = 304
+		WHERE emp_no = #{emp_no} AND app_char = #{app_char}
+	</update>
+	<!-- 이후 결재자 전결처리 -->
+	<update id="beforePreLineApp" parameterType="appLineVo">
+		UPDATE app_line SET app_cd = 304, befo_app_cd = 304
+		WHERE app_step = #{app_step} AND app_char = #{app_char}
+	</update>
+	<!-- 최종 전결처리 -->
+	<update id="finalPreApp" parameterType="appLineVo">
+		UPDATE app_line SET fin_app_cd = 304
+		WHERE app_step = #{app_step} AND app_char = #{app_char}
+	</update>
+	<!-- 진행중 문서보기 -->
+	<select id="pagingAppProList" parameterType="pageVo" resultType="appVo">
+		SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT app_char, ko_nm, app_det_title, reg_dt, title
+                  FROM app a, emp e, app_det_div d
+                  WHERE a.emp_no = e.emp_no
+                  and d.app_det_no = a.app_det_no
+                  and e.emp_no = #{emp_no}
+                  AND app_sta_cd = 306
+                  ORDER BY app_char DESC
+		          )a
+             WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}  
+	</select>
+	<!-- 진행중 문서수 -->
+	<select id="appProCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM app
+  		WHERE emp_no = #{emp_no}
+        AND app_sta_cd = 306
+	</select>
+	
+	<!-- 최종처리 문서보기 -->
+	<select id="pagingAppCompleList" parameterType="pageVo" resultType="appVo">
+		SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT app_char, ko_nm, app_det_title, reg_dt, title, app_sta_cd
+                  FROM app a, emp e, app_det_div d
+                  WHERE a.emp_no = e.emp_no
+                  and d.app_det_no = a.app_det_no
+                  and e.emp_no = #{emp_no}
+                  AND app_sta_cd IN (301,303,304)
+                  ORDER BY app_char DESC
+		          )a
+             WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}  
+	</select>
+	<!-- 최종처리 문서수 -->
+	<select id="appCompleCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM app
+  		WHERE emp_no = #{emp_no}
+        AND app_sta_cd IN (301,303,304)
+	</select>
+	
+	<!-- 임시저장 문서보기 -->
+	<select id="pagingAppTempList" parameterType="pageVo" resultType="appVo">
+		SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT app_char, ko_nm, app_det_title, reg_dt, title
+                  FROM app a, emp e, app_det_div d
+                  WHERE a.emp_no = e.emp_no
+                  and d.app_det_no = a.app_det_no
+                  and e.emp_no = #{emp_no}
+                  AND app_sta_cd = 307
+                  ORDER BY app_char DESC
+		          )a
+             WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}  
+	</select>
+	<!-- 임시저장 문서수 -->
+	<select id="appTempCnt" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+  		FROM app
+  		WHERE emp_no = #{emp_no}
+        AND app_sta_cd = 307
+	</select>
+	
+	<insert id="registAppFile" parameterType="appFileVo">
+		INSERT INTO app_file VALUES(#{app_char},#{file_no})
+	</insert>
+	
+	<select id="appFileList" resultType="int" parameterType="String">
+		SELECT file_no
+		FROM app_file
+		WHERE app_char = #{app_char}
+		ORDER BY file_no
+	</select>
+	
+	<!-- 파일 삭제 -->
+	<delete id="deleteAppFile" parameterType="int">
+		DELETE app_file WHERE file_no = #{file_no}
+	</delete>
+	
+	<!-- 개인 결재선 정보 등록 -->
+	<insert id="registPerAppLineInfo" parameterType="perAppLineInfoVo">
+		INSERT INTO per_app_line_info VALUES(per_app_line_info_seq.nextVal, #{per_app_line_nm},#{emp_no})
+	</insert>
+	<!-- 개인 결재선 라인 등록 -->
+	<insert id="registPerAppLine" parameterType="perAppLineVo">
+		INSERT INTO per_app_line VALUES(#{per_app_line_no},#{emp_no},#{per_app_step})
+	</insert>
+	
+	<!-- 최근 결재선 정보 불러오기 -->
+	<select id="selectMaxAppLineInfo" resultType="int">
+		SELECT MAX(per_app_line_no)
+		FROM per_app_line_info
+	</select>
+	<!-- 개인결재선 확인 -->
+	<select id="selectAppLineInfo" parameterType="int" resultType="perAppLineInfoVo">
+		SELECT *
+		FROM  per_app_line_info
+		WHERE emp_no = #{emp_no}
+	</select>
+	
+	<!-- 결재선 정보 불러오기 -->
+	<select id="selectAppLineListInfo" parameterType="int" resultType="int">
+		SELECT emp_no
+		FROM per_app_line
+		WHERE per_app_line_no = #{per_app_line_no}
+		ORDER BY per_app_step
+	</select>
+	
+	
+	
+</mapper>
+

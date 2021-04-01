@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="attFile">
+ 
+	<!-- 파일업로드 -->
+	<insert id="registFile" parameterType="attFileVo">
+		INSERT INTO att_file VALUES(file_seq.nextVal,#{file_nm},#{file_route},SYSDATE,1,#{file_size})
+	</insert>
+	
+	<select id="maxFileNo" resultType="int">
+		SELECT MAX(file_no) 
+		FROM att_file
+	</select>
+
+	<select id="selectFile" resultType="attFileVo" parameterType="int">
+		SELECT *
+		FROM att_file
+		WHERE file_no = #{file_no}
+	</select>
+</mapper>
+
+
+

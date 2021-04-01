@@ -1,0 +1,53 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<header id="header">
+	
+            <!--logo start-->
+            <div class="brand">
+                <a href="${cp}/test/main" class="logo"><span>DDIT</span></a>
+            </div>
+            <!--logo end-->
+            <div class="toggle-navigation toggle-left">
+                <button type="button" class="btn btn-default" id="toggle-left" data-toggle="tooltip" data-placement="right" title="Toggle Navigation">
+                    <i class="fa fa-bars"></i>
+                </button>
+                        
+            </div>
+            
+            
+            
+            <div class="user-nav" style="float: right;" >
+            
+                <ul >
+                    <li class="dropdown settings">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                      ${S_USER.ko_nm} 님 <i class="fa fa-angle-down"></i>
+                    </a>
+                        <ul class="dropdown-menu animated fadeInDown">
+<!--                             <li> -->
+<!--                                 <a href="#"><i class="fa fa-user"></i> Profile</a> -->
+<!--                             </li> -->
+<!--                             <li> -->
+<!--                                 <a href="#"><i class="fa fa-calendar"></i> Calendar</a> -->
+<!--                             </li> -->
+<!--                             <li> -->
+<!--                                 <a href="#"><i class="fa fa-envelope"></i> Inbox <span class="badge badge-danager" id="user-inbox">5</span></a> -->
+<!--                             </li> -->
+                            <li>
+                                <a href="${cp}/empController/logout?emp_no=${S_USER.emp_no}"><i class="fa fa-power-off"></i> Logout</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <div class="toggle-navigation toggle-right">
+                            <a href="javascript:void(0)" class="btn btn-default" id="toggle-right">
+                                <i class="fa fa-comment"></i>
+                            </a>
+                        </div>
+                    </li>
+                </ul>  
+            </div>
+            <div style="float: right; padding-top: 5px;">
+            	<img id="pictureViewImg" style="width: 70px; height: 70px; "	src="${cp }/empController/profile?emp_id=${S_USER.emp_id}" />
+            </div>
+        </header>

@@ -1,0 +1,10 @@
+eclipse.preferences.version=1
+encoding//src/main/java/com/wedul/pdf/PDFView.java=UTF-8
+encoding//src/main/java/kr/or/ddit/groupware=UTF-8
+encoding//src/main/java/kr/or/ddit/groupware/contoller/BoardController.java=UTF-8
+encoding//src/main/java/kr/or/ddit/groupware/model/EmpVo.java=UTF-8
+encoding//src/main/java/kr/or/ddit/groupware/model/PopUpVo.java=UTF-8
+encoding//src/main/java/kr/or/ddit/groupware/repository/BoardDaoI.java=UTF-8
+encoding//src/main/java/kr/or/ddit/groupware/repository/OnOffDaoI.java=UTF-8
+encoding//src/main/webapp/WEB-INF/views/pms/main.jsp=UTF-8
+encoding/<project>=UTF-8

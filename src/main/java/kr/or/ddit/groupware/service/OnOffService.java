@@ -1,0 +1,183 @@
+package kr.or.ddit.groupware.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import kr.or.ddit.common.model.PageVo;
+import kr.or.ddit.groupware.model.CommCdVo;
+import kr.or.ddit.groupware.model.EmpVo;
+import kr.or.ddit.groupware.model.OnOffVo;
+import kr.or.ddit.groupware.repository.OnOffDaoI;
+
+@Service("onoffService")
+public class OnOffService implements OnOffServiceI{
+	
+	private static final Logger logger = LoggerFactory.getLogger(OnOffService.class);
+
+	@Resource(name="onoffDao")
+	private OnOffDaoI dao;
+	
+	@Override
+	public Map<String, Object> selectOnOffPaging(PageVo pageVo) {
+		
+		Map<String, Object> map = new HashMap<>();
+		
+		map.put("onofflist", dao.selectOnOffPaging(pageVo));
+		map.put("pagination", (int)Math.ceil( (double)dao.onoffCnt() / pageVo.getPageSize()));
+		map.put("pageVo", pageVo);
+		
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> selectOnOffDetailPaging(Map<String, Object> map) {
+	
+		Map<String, Object> paramMap = new HashMap<>();
+		
+		int onoffdetailCnt = dao.onoffDetailCnt((int)map.get("emp_no"));		
+		
+		List<OnOffVo> onoffDetaillist = dao.selectOnOffDetailPaging(map);
+		paramMap.put("onoffDetaillist", onoffDetaillist);
+		paramMap.put("pagination1", (int)Math.ceil( (double)onoffdetailCnt / (Integer)map.get("pageSize")));
+		paramMap.put("pageVo1", map.get("pageVo"));
+		
+		return paramMap;
+	}
+
+	@Override
+	public OnOffVo selectonoff(int emp_no) {
+
+		return dao.selectonoff(emp_no);
+	}
+
+	@Override
+	public List<OnOffVo> selectOnOfflist() {
+		
+		return dao.selectOnOfflist();
+	}
+
+	@Override
+	public List<OnOffVo> selectOnOffDetaillist(int emp_no) {
+		
+		return dao.selectOnOffDetaillist(emp_no);
+	}
+
+	@Override
+	public int insertAttend(int emp_no) {
+		
+		try {
+			return dao.insertAttend(emp_no);			
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
+	@Override
+	public OnOffVo selectEmpAttend(int emp_no) {
+				
+		return dao.selectEmpAttend(emp_no);
+	}
+
+	@Override
+	public int selectOnoffMax() {
+		
+		return dao.selectOnoffMax();
+	}
+
+	@Override
+	public int checkAttendCnt(int emp_no) {
+		
+		return dao.checkAttendCnt(emp_no);
+	}
+
+	@Override
+	public OnOffVo checkAttendTime(int emp_no) {
+		try {
+			return dao.checkAttendTime(emp_no);			
+		}catch (Exception e) {
+			return dao.checkAttendTime(emp_no);
+		}
+	}
+
+	@Override
+	public int updateOffwork(int emp_no) {
+		try {
+			return dao.updateOffwork(emp_no);
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
+	@Override
+	public OnOffVo checkOffTime(int emp_no) {
+	
+		return dao.checkOffTime(emp_no);
+	}
+
+	@Override
+	public OnOffVo selectWorktime(int emp_no) {
+		
+		return dao.selectWorktime(emp_no);
+	}
+
+	@Override
+	public int checkoffCnt(int emp_no) {
+		
+		return dao.checkoffCnt(emp_no);
+	}
+
+	@Override
+	public List<CommCdVo> selectWorkStatus() {
+		
+		return dao.selectWorkStatus();
+	}
+
+	@Override
+	public int updateWorkStatus(Map<String, Object> map) {
+		
+		return dao.updateWorkStatus(map);
+	}
+
+	@Override
+	public EmpVo selectEmpWorkSta(int emp_no) {
+		
+		return dao.selectEmpWorkSta(emp_no);
+	}
+
+	@Override
+	public List<OnOffVo> searchOnoffPaging(Map<String, Object> map) {
+
+		return dao.searchOnoffPaging(map);
+	}
+	
+	@Override
+	public int searchPagingCnt(Map<String, Object> map) {
+		
+		return dao.searchPagingCnt(map);
+	}
+
+	@Override
+	public List<OnOffVo> searchDetailPaging(Map<String, Object> map) {
+		
+		logger.debug("map : {}", map);
+		
+		return dao.searchDetailPaging(map);
+	}
+
+	@Override
+	public int searchDetailPagingCnt(Map<String, Object> map) {
+		
+		logger.debug("map : {}", map);
+		
+		return dao.searchDetailPagingCnt(map);
+	}
+
+
+}
