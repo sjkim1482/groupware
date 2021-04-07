@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pms">
+	<!-- 전자결재 pms 기안서 -->
+	<!-- pms 등록 -->
+	<insert id="registPsm" parameterType="pmsVo">
+		INSERT INTO PMS VALUES(
+		pms_seq.nextVal
+		,#{app_char}
+		,#{emp_no}
+		,#{app_emp_no}
+		,#{pms_nm}
+		,#{cont}
+		,#{s_dt}
+		,#{e_dt}
+		,''
+		,0
+		,#{sta_cd})
+	</insert>
+	
+	<!-- 가장최근 PSM 프로젝트 찾기 -->
+	<select id="selectPmsMaxNo" resultType="int">
+		SELECT MAX(pms_no)
+		FROM pms
+	</select>
+	
+	<!-- pms 참여자 등록 -->
+	<insert id="registPsmEmp" parameterType="pmsEmpVo">
+		INSERT INTO pms_emp VALUES(#{pms_no},#{attend_emp_no})
+	</insert>
+	
+	<!-- PMS 참여자 리스트 불러오기 -->
+	<select id="selectPsmEmpList" resultType="int" parameterType="int">
+		SELECT attend_emp_no
+		FROM pms_emp
+		WHERE pms_no = #{pms_no}
+	</select>
+	
+	<!-- PMS등록번호 불러오기 -->
+	<select id="selectPmsNo" resultType="int" parameterType="String">
+		SELECT pms_no
+		FROM pms
+		WHERE app_char = #{app_char}
+	</select>
+	
+	<!-- PSM 승인처리 -->
+	<update id="approvePms" parameterType="String">
+		UPDATE pms SET sta_cd = 504 WHERE app_char = #{app_char}
+	</update>
+	
+
+	
+	
+	
+	<!-- 승인 대기중인 프로젝트 전체조회  관리자 시점-->
+	<select id="selectAppList" resultType="pmsVo">
+	select 
+	    app_char,
+	    emp_no,
+	     (select ko_nm from emp where emp_no=a.emp_no) ko_nm,
+	    app_det_no,
+	    title,
+	    reg_dt,
+	    s_dt,
+	    e_dt,
+	    app_sta_cd
+	from app  a
+	where APP_DET_NO = 4
+	AND APP_STA_CD =306
+	</select>
+	
+	<!-- 승인 대기중인 프로젝트 조회  작성자만 보일 수 있도록 -->
+	<select id="selectAppPmsempList" resultType="pmsVo" parameterType="int">
+	select 
+	    app_char,
+	    emp_no,
+	     (select ko_nm from emp where emp_no=a.emp_no) ko_nm,
+	    app_det_no,
+	    title,
+	    reg_dt,
+	    s_dt,
+	    e_dt,
+	    app_sta_cd
+	from app  a
+	where APP_DET_NO = 4
+	AND emp_no =#{emp_no}
+	AND APP_STA_CD =306
+	
+	</select>
+	
+	
+	<!-- 진행중인 프로젝트 전체조회- 관리자 -->
+	<select id="selectAll"  resultType="pmsVo" parameterType="pageVo">
+	SELECT * 
+	FROM 
+	    (SELECT ROWNUM rn,a.* 
+	    FROM 
+	        (SELECT p.pms_no, p.app_char ,a.emp_no , p.pms_nm ,p.cont, p.s_dt, p.e_dt ,p.est_time,p.prog, p.sta_cd ,a.reg_dt, e.ko_nm, t.dept_nm
+            FROM pms p , app a, emp e, dept t
+        	WHERE p.APP_CHAR = a.APP_CHAR
+    		AND e.emp_no = p.emp_no
+        	AND t.dept_no = e.dept_no
+        	)a
+         WHERE ROWNUM &lt; #{page} * #{pageSize})
+	WHERE rn BETWEEN (#{page}-1) * #{pageSize} + 1 AND #{page} * #{pageSize}
+	</select>
+		<!-- 프로젝트 리스트 총 행 수 -->
+	<select id="PmsAllCnt" resultType="int">
+		SELECT count(*)
+		FROM pms 
+	</select>
+	
+	<!-- 진행중인 프로젝트 조회 - 사원  -->
+	<select id="selectPmsemp"  resultType="pmsVo" parameterType="int">
+		SELECT p.pms_no, p.app_char ,a.emp_no , p.pms_nm ,p.cont, p.s_dt, p.e_dt ,p.est_time,p.prog, p.sta_cd ,a.reg_dt, e.ko_nm, t.dept_nm
+		FROM pms p , app a, emp e, dept t
+		WHERE p.APP_CHAR = a.APP_CHAR
+		AND e.emp_no = p.emp_no
+		AND t.dept_no = e.dept_no
+		AND p.pms_no = #{pms_no}
+	</select>
+	
+	<!-- 참여중인 플젝번호  -->
+	<select id="selectPms" resultType="integer" parameterType="int">
+	    SELECT p.pms_no
+	    FROM pms_emp e ,pms p
+	    WHERE attend_emp_no = #{attend_emp_no}
+        AND p.pms_no = e.pms_no 
+        AND sta_cd = 504
+	    ORDER BY pms_no DESC 
+	</select>
+	
+	
+	<!-- 프로젝트 구성원 정보 조회 -->
+	<select id="pmsEmpList" parameterType="int" resultType="pmsVo">
+		SELECT d.dept_nm,e.ko_nm,c.cd_ko_nm, e.emp_id
+		FROM pms_emp p , dept d, emp e ,comm_cd c
+		WHERE d.dept_no = e.dept_no
+        AND e.emp_no = p.ATTEND_EMP_NO
+        AND e.po_cd = c.comm_no
+        AND pms_no =  #{pms_no}
+	</select>
+	
+	<!-- 일감 리스트 조회 -->
+	<select id="workAllList" parameterType="map" resultType="pmsVo">
+	 SELECT LPAD((' '), 8*(LEVEL-1)) || work_nm work_nm,
+		    work_no,
+		    higher_work_no,
+		    cont,
+		    s_dt,
+		    e_dt,
+		    prog,
+		    est_time,
+		    pri_order,
+		    pri_order_nm,
+		    sta_cd,
+		    sta_cd_nm,
+		    pms_no,
+		    attend_emp_no, 
+		    ko_nm,
+		    LEVEL workLevel
+			FROM
+			    (SELECT ROWNUM rn, a.*
+			     FROM
+			         (SELECT 
+		               		work_no,
+		                    higher_work_no,
+		                    work_nm,
+		                    cont,
+		                    s_dt,
+		                    e_dt,
+		                    prog,
+		                    est_time,
+		                    pri_order,
+		                    (select cd_ko_nm from comm_cd where comm_no=W.PRI_ORDER) pri_order_nm,
+		                    sta_cd,
+		                    (select cd_ko_nm from comm_cd where comm_no=W.STA_CD) sta_cd_nm,
+		                    pms_no,
+		                    attend_emp_no,
+		                    (select ko_nm from emp where emp_no=W.ATTEND_EMP_NO) ko_nm
+		                FROM
+		                    work w
+			          WHERE pms_no = #{pms_no}
+			          ORDER BY work_no DESC
+			          ) a
+			     )
+			WHERE rn BETWEEN (#{page}-1) * #{pageSize} + 1 AND #{page} * #{pageSize}
+			START WITH HIGHER_WORK_NO IS NULL 
+		    CONNECT BY PRIOR WORK_NO = HIGHER_WORK_NO
+		    ORDER SIBLINGS BY E_DT ASC
+	</select>
+	
+	<!-- 일감 리스트 총 행 수 -->
+	<select id="workAllCnt" parameterType="int" resultType="int">
+		SELECT count(*)
+		FROM work 
+		WHERE pms_no = #{pms_no}
+	</select>
+	
+	<!-- 일감 상세정보 -->
+	<select id="workDetail" parameterType="pmsVo" resultType="pmsVo">
+		SELECT
+		    work_no,
+		    higher_work_no,
+		    work_nm,
+		    cont,
+		    s_dt,
+		    e_dt,
+		    prog,
+		    est_time,
+		    pri_order,
+		    (select cd_ko_nm from comm_cd where comm_no=W.PRI_ORDER   ) pri_order_nm,
+		    sta_cd,
+		    (select cd_ko_nm from comm_cd where comm_no=W.STA_CD) sta_cd_nm,
+		    pms_no,
+		    attend_emp_no,
+		    (select ko_nm from emp where emp_no=W.ATTEND_EMP_NO) ko_nm
+		FROM
+		    work w
+		WHERE pms_no = #{pms_no}
+		AND work_no = #{work_no}
+	</select>
+	
+	
+	<!-- 일감 등록  -->
+	<insert id="registWork" parameterType="pmsVo" >
+		INSERT INTO work (
+		    work_no,
+		    higher_work_no,
+		    work_nm,
+		    cont,
+		    s_dt,
+		    e_dt,
+		    prog,
+		    est_time,
+		    pri_order,
+		    sta_cd,
+		    pms_no,
+		    attend_emp_no
+		) VALUES (
+		    workSEQ.nextval,
+		    null,
+		    #{work_nm},
+		    #{cont},
+		    #{s_dt},
+		    #{e_dt},
+		    #{prog},
+		    #{est_time},
+		    #{pri_order},
+		    #{sta_cd},
+		    #{pms_no},
+		    #{attend_emp_no}
+			)
+	</insert>
+	
+	<!-- 등록한 일감 조회 -->
+	<select id="selectWork" resultType="int">
+	SELECT Max(work_no)
+    from work
+	</select>
+
+	<!-- 첨부파일 등록 -->
+	<insert id="registWorkFile" parameterType="workFileVo">
+		INSERT INTO work_file VALUES(#{work_no} ,#{file_no})
+	</insert>
+	
+	<!-- 첨부파일 확인 -->
+	<select id="workFileList" resultType="int" parameterType="int">
+		SELECT file_no
+		FROM work_file
+		WHERE work_no = #{work_no}
+		ORDER BY file_no
+	</select>
+	
+	<!-- 상태코드 출력하기  -->
+	<select id="selectComm_cd" resultType="commCdVo">
+	 SELECT comm_no, cd_ko_nm
+	 FROM comm_cd
+	 WHERE COMM_TP_CHAR = 'H015'
+	</select>
+	
+	<!-- 우선순위 출력하기  -->
+	<select id="selectComm_cdPri" resultType="commCdVo">
+	 SELECT comm_no, cd_ko_nm
+	 FROM comm_cd
+	 WHERE COMM_TP_CHAR = 'H010'
+	</select>
+
+	<!-- 일감 수정  -->
+	<update id="modifyWork" parameterType="pmsVo">
+	 UPDATE work SET
+	   work_nm       = #{work_nm},
+	   cont          = #{cont},
+	   s_dt          = #{s_dt},
+	   e_dt          = #{e_dt},
+	   prog          = #{prog},
+	   est_time      = #{est_time},
+	   pri_order     = #{pri_order},
+	   sta_cd        = #{sta_cd}
+	 WHERE 
+	   work_no = #{work_no}
+	</update>	
+	
+	<!-- 진척도가 100이면 상태코드 완료로 변경 -->
+	<update id="modifyWorkProg" parameterType="int">
+	  UPDATE work SET sta_cd = 606
+  			WHERE work_no = #{work_no}
+	</update>
+	
+	
+	<delete id="deleteWork"  parameterType="int">
+  	DELETE FROM work WHERE work_no = #{work_no}
+	</delete>
+	
+	<!-- 하위 일감 등록 -->
+	<insert id="registLowerWork" parameterType="pmsVo" >
+		INSERT INTO work (
+		    work_no,
+		    higher_work_no,
+		    work_nm,
+		    cont,
+		    s_dt,
+		    e_dt,
+		    prog,
+		    est_time,
+		    pri_order,
+		    sta_cd,
+		    pms_no,
+		    attend_emp_no
+		) VALUES (
+		    workSEQ.nextval,
+		    #{higher_work_no},
+		    #{work_nm},
+		    #{cont},
+		    #{s_dt},
+		    #{e_dt},
+		    #{prog},
+		    #{est_time},
+		    #{pri_order},
+		    #{sta_cd},
+		    #{pms_no},
+		    #{attend_emp_no}
+			)
+	</insert>
+	
+	<!-- 차트 리스트로 출력 -->
+	 		<!-- TO_CHAR(higher_work_no) higher_work_nm -->
+	<select id="selectListChart" parameterType="int" resultType="pmsVo">
+	 SELECT work_no, 
+	 		s_dt,
+	 		e_dt,
+	 		TO_CHAR(s_dt, 'yyyy,MM,dd') s_dtS, 
+	 		TO_CHAR(e_dt, 'yyyy,MM,dd') e_dtS,
+	 		prog, 
+	 		work_nm, 
+	 		higher_work_no
+	 FROM work w
+			WHERE pms_no = #{pms_no}
+	</select>
+	
+	<!-- 하위 일감 조회 -->
+	<select id="SelectLowerWork" parameterType="int" resultType="pmsVo">
+		SELECT
+		    work_no,
+		    higher_work_no,
+		    work_nm,
+		    cont,
+		    s_dt,
+		    e_dt,
+		    prog,
+		    est_time,
+		    pri_order,
+		    (select cd_ko_nm from comm_cd where comm_no=W.PRI_ORDER   ) pri_order_nm,
+		    sta_cd,
+		    (select cd_ko_nm from comm_cd where comm_no=W.STA_CD) sta_cd_nm,
+		    pms_no,
+		    attend_emp_no,
+		    (select ko_nm from emp where emp_no=W.ATTEND_EMP_NO) ko_nm
+
+		FROM
+		    work w
+		    WHERE HIGHER_WORK_NO = #{higher_work_no}
+	</select>
+	
+</mapper>

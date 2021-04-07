@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vacation">
+	
+	<!-- 휴가등록 -->
+	<insert id="registVacation" parameterType="vacationVo">
+		INSERT INTO vacation VALUES(
+		vac_seq.nextVal
+		,#{s_dt}
+		,#{e_dt}
+		,#{emp_no}
+		,#{vac_cd}
+	)
+	</insert>
+	<!-- 휴가등록 성공시 해당휴가번호를 불러옴 -->
+	<select id="vacationMaxNo" resultType="int">
+		SELECT MAX(vac_no)
+		FROM vacation
+	</select>
+	<!-- 휴가등록시 사원 연차 감소를 위한 휴가기간 구하기 -->
+	<select id="vacationTime" parameterType="vacationVo" resultType="int">
+		SELECT e_dt-s_dt
+		FROM vacation
+		WHERE vac_no = #{vac_no}
+	</select>
+	
+	<!-- 휴가시 사원 연차수 감소 -->
+	<update id="subVacCnt" parameterType="vacationVo">
+		UPDATE emp SET vac_cnt=(vac_cnt-#{vacationday}) WHERE emp_no=#{emp_no}
+	</update>
+	
+	<!-- 휴가시 사원 반차수 감소 -->
+	<update id="subVacSrvCnt" parameterType="vacationVo">
+		UPDATE emp SET vac_cnt=(vac_cnt-0.5) WHERE emp_no=#{emp_no}
+	</update>
+	
+		
+	<update id="updateVac">
+		UPDATE emp SET vac_cnt = NVL((CASE 
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 1 THEN 1
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 2 THEN 2
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 3 THEN 3
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 4 THEN 4
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 5 THEN 5
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 6 THEN 6
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 7 THEN 7
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 8 THEN 8
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 9 THEN 9
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 10 THEN 10 
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 11 THEN 11
+            WHEN TRUNC(MONTHS_BETWEEN(sysdate, hire_dt)) = 12 THEN 12
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 1 THEN 15
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 2 THEN 15
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 3 THEN 16
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 4 THEN 16
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 5 THEN 17
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 6 THEN 17
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 7 THEN 18
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 8 THEN 18
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 9 THEN 19
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 10 THEN 19
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 11 THEN 20
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 12 THEN 20
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 13 THEN 21
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 14 THEN 21
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 15 THEN 22
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 16 THEN 22
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 17 THEN 23 
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 18 THEN 23
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 19 THEN 24
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 20 THEN 24
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 21 THEN 25
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 22 THEN 25
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 23 THEN 26
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 24 THEN 26
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 25 THEN 27
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 26 THEN 27
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 27 THEN 28
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 28 THEN 28
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 29 THEN 29
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 30 THEN 29
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 31 THEN 30
+            WHEN TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) = 32 THEN 30
+            END), 0) 
+	</update>
+	
+	<select id="selectVacInfoPaging" resultType="vacationVo" parameterType="Map">
+		SELECT emp_no, ko_nm, dept_nm, cd_ko_nm, hire_dt, retire_dt, work_year, used_vac, total_mon_vac, total_vac, remain_vac, emp_id 
+		FROM 
+		(SELECT ROWNUM rn, a.* 
+		FROM 
+		(SELECT *
+		FROM 
+		((SELECT distinct(e.emp_no) emp_no,ko_nm , dept_nm , cd_ko_nm , TO_CHAR(hire_dt, 'yyyy/mm/dd') hire_dt, 
+		        NVL(TO_CHAR(retire_dt, 'yyyy/mm/dd'), '-') retire_dt, emp_id, 
+		        TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) work_year 
+		FROM emp e, comm_cd c, dept d, vacation v 
+		WHERE e.po_cd = c.comm_no 
+		AND d.dept_no = e.dept_no 
+		AND v.emp_no(+) = e.emp_no))q, 
+		((SELECT NVL(SUM(used_vac), 0) used_vac,  
+		        CASE WHEN vac_cnt &gt; 13 THEN 0 ELSE vac_cnt END total_mon_vac, 
+		        CASE WHEN vac_cnt &lt; 13 THEN 0 ELSE vac_cnt END total_vac, 
+		        vac_cnt - NVL(SUM(used_vac), 0) remain_vac, emp_no emp_no_b 
+		FROM 
+		(SELECT e.emp_no emp_no, CASE WHEN comm_no = 201 THEN (e_dt - s_dt) + 0.5
+                   WHEN comm_no = 202 THEN (e_dt - s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 END used_vac, vac_cnt   
+		FROM emp e, vacation v, comm_cd c 
+		WHERE e.emp_no = v.emp_no(+)
+		AND c.comm_no(+) = v.vac_cd) 
+		GROUP BY emp_no, vac_cnt) 
+		ORDER BY emp_no)b 
+		WHERE q.emp_no = b.emp_no_b) a 
+		WHERE ROWNUM &lt;= #{page} * #{pageSize} ) 
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize} 
+	</select>
+	
+	<select id="selectVacInfoCnt" resultType="int">
+		SELECT COUNT(*)
+		FROM
+		((SELECT distinct(e.emp_no) emp_no,ko_nm , dept_nm , cd_ko_nm , TO_CHAR(hire_dt, 'yyyy/mm/dd') hire_dt, 
+	        NVL(TO_CHAR(retire_dt, 'yyyy/mm/dd'), '-') retire_dt, 
+	        TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) work_year
+		FROM emp e, comm_cd c, dept d, vacation v
+		WHERE e.po_cd = c.comm_no
+		AND d.dept_no = e.dept_no
+		AND v.emp_no(+) = e.emp_no))q,
+		((SELECT NVL(SUM(used_vac), 0) used_vac, 
+	        CASE WHEN vac_cnt &gt; 13 THEN 0 ELSE vac_cnt END total_mon_vac,
+	        CASE WHEN vac_cnt &lt; 13 THEN 0 ELSE vac_cnt END total_vac,
+	        vac_cnt - NVL(SUM(used_vac), 0) remain_vac, emp_no emp_no_b
+			FROM
+				(SELECT e.emp_no emp_no, (v.e_dt - v.s_dt) + 1 used_vac, vac_cnt  
+				FROM emp e, vacation v
+				WHERE e.emp_no = v.emp_no(+))
+				GROUP BY emp_no, vac_cnt)
+				ORDER BY emp_no)b
+				WHERE q.emp_no = b.emp_no_b
+	</select>
+	
+	<!-- 연차 리스트 검색 (사원, 부서, 기간) -->
+	<select id="searchempVacPaging" parameterType="Map" resultType="vacationVo">
+		SELECT emp_no, ko_nm, dept_nm, cd_ko_nm, hire_dt, retire_dt, work_year, used_vac, total_mon_vac, total_vac, remain_vac, emp_id 
+		FROM 
+		(SELECT ROWNUM rn, a.* 
+		FROM 
+		(SELECT *
+		FROM 
+		((SELECT distinct(e.emp_no) emp_no,ko_nm , dept_nm , cd_ko_nm , TO_CHAR(hire_dt, 'yyyy/mm/dd') hire_dt, 
+		        NVL(TO_CHAR(retire_dt, 'yyyy/mm/dd'), '-') retire_dt, emp_id, 
+		        TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) work_year 
+		FROM emp e, comm_cd c, dept d, vacation v 
+		WHERE e.po_cd = c.comm_no 
+		AND d.dept_no = e.dept_no 
+		AND v.emp_no(+) = e.emp_no))q, 
+		((SELECT NVL(SUM(used_vac), 0) used_vac,  
+		        CASE WHEN vac_cnt &gt; 13 THEN 0 ELSE vac_cnt END total_mon_vac, 
+		        CASE WHEN vac_cnt &lt; 13 THEN 0 ELSE vac_cnt END total_vac, 
+		        vac_cnt - NVL(SUM(used_vac), 0) remain_vac, emp_no emp_no_b 
+		FROM 
+		(SELECT e.emp_no emp_no, CASE WHEN comm_no = 201 THEN (e_dt - s_dt) + 0.5
+                   WHEN comm_no = 202 THEN (e_dt - s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 END used_vac, vac_cnt   
+		FROM emp e, vacation v, comm_cd c 
+		WHERE e.emp_no = v.emp_no(+)
+		AND c.comm_no(+) = v.vac_cd) 
+		GROUP BY emp_no, vac_cnt) 
+		ORDER BY emp_no)b 
+		WHERE q.emp_no = b.emp_no_b
+		AND q.dept_nm LIKE #{data2}
+		AND q.ko_nm LIKE #{data1}
+		AND hire_dt &gt; TO_DATE(#{date1}, 'yyyymmdd')
+		AND hire_dt &lt; TO_DATE(#{date2}, 'yyyymmdd')+1) a 
+		WHERE ROWNUM &lt;= #{page} * #{pageSize} ) 
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<select id="searchempVacCnt" resultType="int" parameterType="map">
+		SELECT COUNT(*)
+		FROM
+		((SELECT distinct(e.emp_no) emp_no,ko_nm , dept_nm , cd_ko_nm , TO_CHAR(hire_dt, 'yyyy/mm/dd') hire_dt, 
+	        NVL(TO_CHAR(retire_dt, 'yyyy/mm/dd'), '-') retire_dt, 
+	        TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) work_year
+		FROM emp e, comm_cd c, dept d, vacation v
+		WHERE e.po_cd = c.comm_no
+		AND d.dept_no = e.dept_no
+		AND v.emp_no(+) = e.emp_no))q,
+		((SELECT NVL(SUM(used_vac), 0) used_vac, 
+	        CASE WHEN vac_cnt &gt; 13 THEN 0 ELSE vac_cnt END total_mon_vac,
+	        CASE WHEN vac_cnt &lt; 13 THEN 0 ELSE vac_cnt END total_vac,
+	        vac_cnt - NVL(SUM(used_vac), 0) remain_vac, emp_no emp_no_b
+			FROM
+				(SELECT e.emp_no emp_no, (v.e_dt - v.s_dt) + 1 used_vac, vac_cnt  
+				FROM emp e, vacation v
+				WHERE e.emp_no = v.emp_no(+))
+				GROUP BY emp_no, vac_cnt)
+				ORDER BY emp_no)b
+				WHERE q.emp_no = b.emp_no_b
+				AND q.dept_nm LIKE #{data2}
+				AND q.ko_nm LIKE #{data1}
+				AND hire_dt &gt; TO_DATE(#{date1}, 'yyyymmdd')
+				AND hire_dt &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+	</select>
+	
+	<!-- 개인사원 연차 상세조회 페이징 -->
+	<select id="selectDetVacInfoPaging" parameterType="Map" resultType="vacationVo">
+		SELECT emp_no, ko_nm, dept_nm, cd_ko_nm, hire_dt, retire_dt, work_year, used_vac, total_mon_vac, total_vac, remain_vac, emp_id 
+		FROM 
+		(SELECT ROWNUM rn, a.* 
+		FROM 
+		(SELECT *
+		FROM 
+		((SELECT distinct(e.emp_no) emp_no,ko_nm , dept_nm , cd_ko_nm , TO_CHAR(hire_dt, 'yyyy/mm/dd') hire_dt, 
+		        NVL(TO_CHAR(retire_dt, 'yyyy/mm/dd'), '-') retire_dt, emp_id, 
+		        TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) work_year 
+		FROM emp e, comm_cd c, dept d, vacation v 
+		WHERE e.po_cd = c.comm_no 
+		AND d.dept_no = e.dept_no 
+		AND v.emp_no(+) = e.emp_no))q, 
+		((SELECT NVL(SUM(used_vac), 0) used_vac,  
+		        CASE WHEN vac_cnt &gt; 13 THEN 0 ELSE vac_cnt END total_mon_vac, 
+		        CASE WHEN vac_cnt &lt; 13 THEN 0 ELSE vac_cnt END total_vac, 
+		        vac_cnt - NVL(SUM(used_vac), 0) remain_vac, emp_no emp_no_b 
+		FROM 
+		(SELECT e.emp_no emp_no, (v.e_dt - v.s_dt) + 1 used_vac, vac_cnt   
+		FROM emp e, vacation v 
+		WHERE e.emp_no = v.emp_no(+)) 
+		GROUP BY emp_no, vac_cnt) 
+		ORDER BY emp_no)b 
+		WHERE q.emp_no = b.emp_no_b
+		AND q.emp_no = #{emp_no}) a 
+		WHERE ROWNUM &lt;= #{page} * #{pageSize} ) 
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<select id="selectDetVacInfoCnt" resultType="int" parameterType="Map">
+		SELECT COUNT(*)
+		FROM
+		((SELECT distinct(e.emp_no) emp_no,ko_nm , dept_nm , cd_ko_nm , TO_CHAR(hire_dt, 'yyyy/mm/dd') hire_dt, 
+	        NVL(TO_CHAR(retire_dt, 'yyyy/mm/dd'), '-') retire_dt, 
+	        TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) work_year
+		FROM emp e, comm_cd c, dept d, vacation v
+		WHERE e.po_cd = c.comm_no
+		AND d.dept_no = e.dept_no
+		AND v.emp_no(+) = e.emp_no))q,
+		((SELECT NVL(SUM(used_vac), 0) used_vac, 
+	        CASE WHEN vac_cnt &gt; 13 THEN 0 ELSE vac_cnt END total_mon_vac,
+	        CASE WHEN vac_cnt &lt; 13 THEN 0 ELSE vac_cnt END total_vac,
+	        vac_cnt - NVL(SUM(used_vac), 0) remain_vac, emp_no emp_no_b
+			FROM
+				(SELECT e.emp_no emp_no, (v.e_dt - v.s_dt) + 1 used_vac, vac_cnt  
+				FROM emp e, vacation v
+				WHERE e.emp_no = v.emp_no(+))
+				GROUP BY emp_no, vac_cnt)
+				ORDER BY emp_no)b
+				WHERE q.emp_no = b.emp_no_b
+				AND q.emp_no = #{emp_no}
+	</select>
+	
+	<!-- 연차 사용 내역 페이징 -->
+	<select id="vacationStaPaging" parameterType="Map" resultType="vacationVo">
+		SELECT *
+		FROM 
+		(SELECT ROWNUM rn,a.*
+		FROM
+		(SELECT s_dt, e_dt, e.ko_nm, c.cd_ko_nm, dept_nm,
+		        CASE
+		            WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		            WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		            END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no
+		ORDER BY v.vac_no) a
+		WHERE ROWNUM &lt;= #{page} * #{pageSize} )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<select id="vacationStaPagingCnt" parameterType="Map" resultType="int">
+		SELECT COUNT(*)
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no
+		ORDER BY v.vac_no
+	</select>
+	<!-- 연차내역 검색 페이징 -->
+	<select id="searchVacStaPaging" parameterType="Map" resultType="vacationVo">
+	    SELECT *
+		FROM 
+		(SELECT ROWNUM rn, a.*
+		FROM
+		(SELECT s_dt, e_dt, e.ko_nm, c.cd_ko_nm, dept_nm,
+		        CASE
+		            WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		            WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		            END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no
+        AND ko_nm LIKE #{data1}
+        AND dept_nm LIKE #{data2}
+        AND s_dt &gt; TO_DATE(#{date1}, 'yyyymmdd')
+        AND s_dt &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+		ORDER BY v.vac_no) a
+		WHERE ROWNUM &lt;= #{page} * #{pageSize} )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<select id="searchVacStaPagingCnt" parameterType="Map" resultType="int"> 
+		SELECT COUNT(*)
+		FROM 
+		(SELECT ROWNUM rn, a.*
+		FROM
+		(SELECT s_dt, e_dt, e.ko_nm, c.cd_ko_nm, dept_nm,
+		        CASE
+		            WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		            WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		            END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no
+        AND ko_nm LIKE #{data1}
+        AND dept_nm LIKE #{data2}
+        AND s_dt &gt; TO_DATE(#{date1}, 'yyyymmdd')
+        AND s_dt &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+		ORDER BY v.vac_no) a)
+	</select>
+	
+	<!-- 상세 연차사용내역 -->
+	<select id="vacationDetStaPaging" parameterType="Map" resultType="vacationVo">
+		SELECT *
+		FROM 
+		(SELECT ROWNUM rn,a.*
+		FROM
+		(SELECT s_dt, e_dt, e.ko_nm, c.cd_ko_nm, dept_nm,
+		        CASE
+		            WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		            WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		            END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no
+		AND v.emp_no = #{emp_no}
+		ORDER BY v.vac_no) a
+		WHERE ROWNUM &lt;= #{page} * #{pageSize} )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<select id="vacationDetStaPagingCnt" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM 
+		(SELECT ROWNUM rn,a.*
+		FROM
+		(SELECT s_dt, e_dt, e.ko_nm, c.cd_ko_nm, dept_nm,
+		        CASE
+		            WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		            WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		            END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no
+		AND v.emp_no = #{emp_no}
+		ORDER BY v.vac_no) a)
+	</select>
+	
+	<select id="searchDetStaPaging" parameterType="Map" resultType="vacationVo">
+		SELECT *
+		FROM 
+		(SELECT ROWNUM rn,a.*
+		FROM
+		(SELECT s_dt, e_dt, e.ko_nm, c.cd_ko_nm, dept_nm,
+		        CASE
+		            WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		            WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		            END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no
+		AND v.emp_no = #{emp_no}
+		AND s_dt &gt; TO_DATE(#{date1}, 'yyyymmdd')
+        AND s_dt &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+		ORDER BY v.vac_no) a
+		WHERE ROWNUM &lt;= #{page} * #{pageSize} )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<select id="searchDetStaPagingCnt" parameterType="Map" resultType="int">
+		SELECT COUNT(*)
+		FROM 
+		(SELECT ROWNUM rn,a.*
+		FROM
+		(SELECT s_dt, e_dt, e.ko_nm, c.cd_ko_nm, dept_nm,
+		        CASE
+		            WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		            WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		            END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no
+		AND v.emp_no = #{emp_no}
+		AND s_dt &gt; TO_DATE(#{date1}, 'yyyymmdd')
+        AND s_dt &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+		ORDER BY v.vac_no) a)
+	</select>
+	
+	<!-- 기본 연차 리스트 -->
+	<select id="selectVacList" resultType="vacationVo">
+		SELECT ko_nm, cd_ko_nm ,emp_id, dept_nm, hire_dt, retire_dt, work_year, total_mon_vac, total_vac, used_vac, remain_vac
+		FROM 
+	    (SELECT ROWNUM rn, a.* 
+		 FROM 
+			(SELECT *
+			 FROM 
+			      ((SELECT distinct(e.emp_no) emp_no,ko_nm , dept_nm , cd_ko_nm , TO_CHAR(hire_dt, 'yyyy/mm/dd') hire_dt, 
+			        NVL(TO_CHAR(retire_dt, 'yyyy/mm/dd'), '-') retire_dt, emp_id, 
+			        TRUNC(TRUNC(MONTHS_BETWEEN(sysdate, hire_dt))/12) work_year 
+			        FROM emp e, comm_cd c, dept d, vacation v 
+			        WHERE e.po_cd = c.comm_no 
+	                AND d.dept_no = e.dept_no 
+	                AND v.emp_no(+) = e.emp_no)) q, 
+			((SELECT NVL(SUM(used_vac), 0) used_vac,  
+			         CASE WHEN vac_cnt &gt; 13 THEN 0 ELSE vac_cnt END total_mon_vac, 
+			         CASE WHEN vac_cnt &lt; 13 THEN 0 ELSE vac_cnt END total_vac, 
+			         vac_cnt - NVL(SUM(used_vac), 0) remain_vac, emp_no emp_no_b 
+			 FROM 
+			      (SELECT e.emp_no emp_no,
+	              CASE WHEN comm_no = 201 THEN (e_dt - s_dt) + 0.5
+	                   WHEN comm_no = 202 THEN (e_dt - s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 END used_vac
+	                   , vac_cnt   
+	               FROM emp e, vacation v, comm_cd c 
+	               WHERE e.emp_no = v.emp_no(+)
+	               AND c.comm_no(+) = v.vac_cd)
+	        GROUP BY emp_no, vac_cnt) 
+			ORDER BY emp_no) b 
+			WHERE q.emp_no = b.emp_no_b) a ) 
+	</select>
+	
+	<!-- 기본연차 사용 내역 리스트 -->
+	<select id="selectUsedVacList" resultType="vacationVo">
+		SELECT s_dt, e_dt, e.ko_nm ko_nm, c.cd_ko_nm cd_ko_nm, dept_nm,
+		CASE
+		     WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		     WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no 
+		ORDER BY v.vac_no
+	</select>
+	
+	<!-- 개인 연차사용 내역 리스트 -->
+	<select id="selectDetvacUsedList" resultType="vacationVo" parameterType="int">
+        SELECT s_dt, e_dt, e.ko_nm ko_nm, c.cd_ko_nm cd_ko_nm, dept_nm,
+		        CASE
+		            WHEN c.comm_no = 201 THEN (v.e_dt - v.s_dt) + 0.5
+		            WHEN c.comm_no = 202 THEN (v.e_dt - v.s_dt) + 0.5 ELSE (e_dt - s_dt) + 1 
+		            END used_vac
+		FROM vacation v, emp e, comm_cd c, dept d
+		WHERE v.emp_no = e.emp_no
+		AND C.COMM_NO = v.vac_cd
+		AND d.dept_no = e.dept_no 
+        AND v.emp_no = #{emp_no}
+		ORDER BY v.vac_no
+	</select>
+	
+</mapper>

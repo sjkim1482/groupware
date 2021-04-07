@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="onoff">
+ 
+ <!-- 근태리스트 페이징 -->
+ <select id="selectOnOffPaging" resultType="onVo" parameterType="pageVo">	
+ 	SELECT emp_no, emp_id ,ko_nm, eg_nm, dept_nm, day, attend_time, offwork_time, "DATE", late
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT e.emp_no emp_no ,e.emp_id emp_id, ko_nm, eg_nm, d.dept_nm dept_nm, 
+                    TO_CHAR(attend_time, 'hh24:mi:ss') attend_time, NVL(TO_CHAR(offwork_time,'hh24:mi:ss'), '-') offwork_time,
+                    TO_CHAR(attend_time, 'yyyy/mm/dd') day, TO_CHAR(attend_time, 'day') "DATE",
+                    CASE WHEN TO_CHAR(attend_time, 'hh24:mi:ss') &gt; '09:00:00' THEN '지각' ELSE '-' END late
+                  FROM onoff o, emp e, dept d
+                  WHERE o.emp_no = e.emp_no
+                  AND e.dept_no = d.dept_no
+                  ORDER BY day DESC, attend_time DESC
+		          ) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize} 
+		     )
+	WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+ </select>
+ 
+ <!-- 근태리스트 카운트 -->
+ <select id="onoffCnt" resultType="int">
+ 	SELECT COUNT(*)
+    FROM onoff
+ </select>
+
+<!-- 근태 상세정보 조회 페이징 -->
+ <select id="selectOnOffDetailPaging" resultType="onVo" parameterType="map">
+ 	 	SELECT emp_no, emp_id ,ko_nm, eg_nm, dept_nm, day, attend_time, offwork_time, "DATE", late
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT e.emp_no emp_no ,e.emp_id emp_id, ko_nm, eg_nm, d.dept_nm dept_nm,
+                    TO_CHAR(attend_time, 'hh24:mi:ss') attend_time, NVL(TO_CHAR(offwork_time,'hh24:mi:ss'), '-') offwork_time,
+                    TO_CHAR(attend_time, 'yyyy/mm/dd') day, TO_CHAR(attend_time, 'day') "DATE",
+                    CASE WHEN TO_CHAR(attend_time, 'hh24:mi:ss') &gt; '09:00:00' THEN '지각' ELSE '-' END late
+                  FROM onoff o, emp e, dept d
+                  WHERE o.emp_no = e.emp_no
+                  AND e.dept_no = d.dept_no
+                  AND o.emp_no = #{emp_no}
+                  ORDER BY day DESC
+		          ) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+	WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+ </select>
+ 
+ <!-- 엑셀 다운로드용 기본 리스트 -->
+ <select id="selectOnOfflist" resultType="onVo">
+ 	SELECT e.emp_no emp_no ,e.emp_id emp_id, ko_nm, eg_nm, d.dept_nm dept_nm,
+	         TO_CHAR(attend_time, 'hh24:mi:ss') attend_time, NVL(TO_CHAR(offwork_time,'hh24:mi:ss'), '-') offwork_time,
+	         TO_CHAR(attend_time, 'yyyy/mm/dd') day, TO_CHAR(attend_time, 'day') "DATE",
+	         CASE WHEN TO_CHAR(attend_time, 'hh24:mi:ss') > '09:00:00' THEN '지각' ELSE '-' END late
+	 FROM onoff o, emp e, dept d
+	 WHERE o.emp_no = e.emp_no
+	 AND e.dept_no = d.dept_no
+	 ORDER BY day DESC
+ </select>
+ 
+ 
+ <select id="selectOnOffDetaillist" resultType="onVo" parameterType="int" >
+	SELECT e.emp_no emp_no ,e.emp_id emp_id, ko_nm, eg_nm, d.dept_nm dept_nm,
+	         TO_CHAR(attend_time, 'hh24:mi:ss') attend_time, NVL(TO_CHAR(offwork_time,'hh24:mi:ss'), '-') offwork_time,
+	         TO_CHAR(attend_time, 'yyyy/mm/dd') day, TO_CHAR(attend_time, 'day') "DATE",
+	         CASE WHEN TO_CHAR(attend_time, 'hh24:mi:ss') > '09:00:00' THEN '지각' ELSE '-' END late
+	 FROM onoff o, emp e, dept d
+	 WHERE o.emp_no = e.emp_no
+	 AND e.dept_no = d.dept_no
+	 AND o.emp_no = #{emp_no}
+	 ORDER BY day DESC
+ </select>
+ 
+ 
+ <!-- 근태 상세정보 카운트 -->
+ <select id="onoffDetailCnt" resultType="int" parameterType="int">
+ 	SELECT COUNT(*)
+ 	FROM onoff
+ 	WHERE emp_no = #{emp_no}
+ </select>
+ 
+ <!-- 사원 근태 상세정보 -->
+ <select id="selectonoff" resultType="onVo" parameterType="int">
+ 	SELECT e.ko_nm, d.dept_nm, e.emp_no
+    FROM emp e, dept d
+    WHERE e.dept_no = d.dept_no
+    AND emp_no = #{emp_no}
+ </select>
+ 
+ <insert id="insertAttend" parameterType="int">
+ 	INSERT INTO onoff (dclz_no, attend_time, offwork_time, emp_no)
+ 	VALUES (on_seq.nextval, SYSDATE, null, #{emp_no})
+ </insert>
+ 
+ <select id="selectOnoffMax" resultType="int">
+ 	SELECT MAX(dclz_no)
+ 	FROM onoff
+ </select>
+ 
+ <select id="selectEmpAttend" resultType="onVo">
+ 	SELECT TO_CHAR(attend_time, 'hh24:mi:ss') attend_time
+ 	FROM onoff
+ 	WHERE dclz_no = #{dclz_no}
+ </select>
+ 
+ <!-- 당일 출근여부 확인하기 -->
+ <select id="checkAttendCnt" parameterType="int" resultType="int">
+   SELECT COUNT(*)
+   FROM onoff
+   WHERE TO_CHAR(attend_time, 'yyyy/mm/dd') = TO_CHAR(sysdate, 'yyyy/mm/dd')
+   AND emp_no = #{emp_no}
+ </select>
+
+ <select id="checkAttendTime" parameterType="int" resultType="onVo">
+ 	SELECT TO_CHAR(attend_time, 'hh24:mi:ss') attend_time
+	FROM onoff
+	WHERE TO_CHAR(attend_time, 'yyyy/mm/dd') = TO_CHAR(sysdate, 'yyyy/mm/dd')
+	AND emp_no = #{emp_no}
+ </select>
+ 
+ <update id="updateOffwork" parameterType="int">
+ 	UPDATE onoff SET offwork_time = SYSDATE 
+	WHERE TO_CHAR(attend_time, 'yyyy/mm/dd') = TO_CHAR(sysdate, 'yyyy/mm/dd') 
+	AND emp_no = #{emp_no}
+ </update>
+ 
+ <!-- 당일 퇴근여부 확인하기, 당일 근로시간 -->
+  <select id="checkOffTime" parameterType="int" resultType="onVo">
+ 	SELECT TO_CHAR(offwork_time, 'hh24:mi:ss') offwork_time
+	FROM onoff
+	WHERE TO_CHAR(attend_time, 'yyyy/mm/dd') = TO_CHAR(sysdate, 'yyyy/mm/dd')
+	AND emp_no = #{emp_no}
+ </select>
+ 
+ <select id="selectWorktime" parameterType="int" resultType="onVo">
+	SELECT TO_CHAR(offwork_time - TO_CHAR(attend_time, 'hh24')/24,'hh24') || ':' ||           
+	       TO_CHAR(offwork_time - TO_CHAR(attend_time, 'mi')/(24*60),'mi') || ':' ||      
+	       TO_CHAR(offwork_time - TO_CHAR(attend_time, 'ss')/(24*60*60),'ss') attend_time
+	FROM onoff
+	WHERE TO_CHAR(attend_time, 'yyyy/mm/dd') = TO_CHAR(sysdate, 'yyyy/mm/dd')
+	AND emp_no = #{emp_no}
+ </select>
+ 
+ <select id="checkoffCnt" parameterType="int" resultType="int">
+ 	SELECT COUNT(offwork_time)
+	FROM onoff
+	WHERE TO_CHAR(attend_time, 'yyyy/mm/dd') = TO_CHAR(sysdate, 'yyyy/mm/dd')
+	AND emp_no = #{emp_no}
+ </select>
+ 
+ <!-- 근무상태 select -->
+<select id="selectWorkStatus" resultType="commCdVo">
+	SELECT comm_no, cd_ko_nm
+	FROM comm_cd
+	WHERE COMM_TP_CHAR = 'H004'
+</select>
+
+<update id="updateWorkStatus" parameterType="map">
+	UPDATE emp SET real_wk_cd = #{comm_cd} WHERE emp_no = #{emp_no}
+</update>
+
+<select id="selectEmpWorkSta" resultType="empVo" parameterType="int">
+	SELECT real_wk_cd
+	FROM emp
+	WHERE emp_no = #{emp_no}
+</select>
+
+<!-- 근태 리스트 검색 페이징 -->
+
+<select id="searchOnoffPaging" resultType="onVo" parameterType="map">
+SELECT emp_no, emp_id ,ko_nm, eg_nm, dept_nm, day, attend_time, offwork_time, "DATE", late
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT e.emp_no emp_no ,e.emp_id emp_id, ko_nm, eg_nm, d.dept_nm dept_nm, 
+                    TO_CHAR(attend_time, 'hh24:mi:ss') attend_time, NVL(TO_CHAR(offwork_time,'hh24:mi:ss'), '-') offwork_time,
+                    TO_CHAR(attend_time, 'yyyy/mm/dd') day, TO_CHAR(attend_time, 'day') "DATE",
+                    CASE WHEN TO_CHAR(attend_time, 'hh24:mi:ss') &gt; '09:00:00' THEN '지각' ELSE '-' END late
+                  FROM onoff o, emp e, dept d
+                  WHERE o.emp_no = e.emp_no
+                  AND e.dept_no = d.dept_no
+                  AND e.ko_nm LIKE #{data1}
+	              AND d.dept_nm LIKE #{data2}              		
+                  AND o.attend_time &gt; TO_DATE(#{date1}, 'yyyymmdd')
+                  AND o.attend_time &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+                  ORDER BY day DESC, attend_time DESC
+		          ) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize} 
+		     )
+	WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+</select>
+
+<select id="searchPagingCnt" parameterType="map" resultType="int">
+	SELECT COUNT(*)
+	FROM onoff o, emp e, dept d
+	WHERE o.emp_no = e.emp_no
+	AND e.dept_no = d.dept_no
+	AND e.ko_nm LIKE #{data1}
+	AND d.dept_nm LIKE #{data2}
+	AND o.attend_time &gt; TO_DATE(#{date1}, 'yyyymmdd')
+    AND o.attend_time &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+</select>
+
+<select id="searchDetailPaging" parameterType="map" resultType="onVo">
+	SELECT emp_no, emp_id ,ko_nm, eg_nm, dept_nm, day, attend_time, offwork_time, "DATE", late
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT e.emp_no emp_no ,e.emp_id emp_id, ko_nm, eg_nm, d.dept_nm dept_nm, 
+                    TO_CHAR(attend_time, 'hh24:mi:ss') attend_time, NVL(TO_CHAR(offwork_time,'hh24:mi:ss'), '-') offwork_time,
+                    TO_CHAR(attend_time, 'yyyy/mm/dd') day, TO_CHAR(attend_time, 'day') "DATE",
+                    CASE WHEN TO_CHAR(attend_time, 'hh24:mi:ss') &gt; '09:00:00' THEN '지각' ELSE '-' END late
+                  FROM onoff o, emp e, dept d
+                  WHERE o.emp_no = e.emp_no
+                  AND e.dept_no = d.dept_no
+                  AND o.attend_time &gt; TO_DATE(#{date1}, 'yyyymmdd')
+                  AND o.attend_time &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+                  AND o.emp_no = #{emp_no}
+                  ORDER BY day DESC, attend_time DESC
+		          ) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize} 
+		     )
+	WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+</select>
+
+<select id="searchDetailPagingCnt" parameterType="map" resultType="int">
+	SELECT COUNT(*)
+	FROM onoff o, emp e, dept d
+	WHERE o.emp_no = e.emp_no
+	AND e.dept_no = d.dept_no
+	AND o.attend_time &gt; TO_DATE(#{date1}, 'yyyymmdd')
+    AND o.attend_time &lt; TO_DATE(#{date2}, 'yyyymmdd')+1
+    AND o.emp_no = #{emp_no}
+</select>
+
+	<select id="selectOnOffData" resultType="onVo" parameterType="int">
+		SELECT e.emp_no emp_no ,e.emp_id emp_id, ko_nm, eg_nm, d.dept_nm dept_nm, cd_ko_nm, 
+        	  TO_CHAR(attend_time, 'hh24:mi') attend_time, TO_CHAR(offwork_time,'hh24:mi') offwork_time,
+        	  TO_CHAR(attend_time, 'yyyy/mm/dd') day, TO_CHAR(attend_time, 'day') "date",
+        	  CASE WHEN TO_CHAR(attend_time, 'hh24:mi:ss') > '09:00:00' THEN '지각' ELSE ' ' END late,
+        	  TO_CHAR(offwork_time - TO_CHAR(attend_time, 'hh24')/24,'hh24') || '.' ||           
+        TO_CHAR(offwork_time - TO_CHAR(attend_time, 'mi')/(24*60),'mi') work_time
+		FROM onoff o, emp e, dept d, comm_cd c
+		WHERE o.emp_no = e.emp_no
+		AND e.dept_no = d.dept_no
+		AND c.comm_no = e.po_cd
+		AND attend_time &gt; SYSDATE-8
+		AND attend_time &lt; SYSDATE-1
+		AND TO_CHAR(attend_time, 'day') IN ('월요일', '화요일', '수요일', '목요일', '금요일')
+		AND o.emp_no = #{emp_no}
+		ORDER BY day DESC, attend_time DESC
+	</select>
+
+
+</mapper>

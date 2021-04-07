@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="emp">
+ 
+	<!--  로그인 -->
+	<select id="selectUser" parameterType="String" resultType="empVo">
+	    SELECT * 
+	    FROM emp
+	    WHERE emp_id = #{emp_id}
+	</select>
+	
+	<!-- 개인정보동의 업데이트 -->
+	<update id="agreeModify" parameterType="int">
+		UPDATE emp SET per_info_agr_cd = 141 WHERE emp_no = #{emp_no}
+	</update>
+		
+	<!-- 인사정보 페이징처리  -->
+ 	<select id="selectPagingUser" resultType="empVo" parameterType="pageVo">
+	  	SELECT * 
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT e.emp_no, e.emp_id, e.ko_nm, e.eg_nm, f.cd_ko_nm gender, birth, per_pn, per_email, c.cd_ko_nm
+		          FROM emp e, comm_cd c, comm_cd f
+                  WHERE e.po_cd = c.comm_no 
+                  AND f.comm_no = e.gender
+		          ORDER BY ko_nm
+		          ) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+  
+	<!-- 인사정보 사원수 -->
+	<select id="selectAllUserCount" resultType="int">
+  		SELECT COUNT(*)
+  		FROM emp
+	</select>
+	
+	<!-- 인사정보 상세조회 -->
+	<select id="detailUserAjax" parameterType="empVo" resultType="empVo">
+		SELECT emp_no, d.dept_no dept_no, dept_nm, mgr_no, emp_id, pass, ko_nm, eg_nm, f.cd_ko_nm gender, birth, per_pn, dept_pn, per_email, dept_email, zipcode, addr1, addr2, hire_dt, retire_dt, sal, profile_nm, profile_route, vac_Cnt, per_info_agr_cd, ath_lv_cd, real_wk_cd,g.cd_ko_nm serve_nm, c.cd_ko_NM po_nm, r.cd_ko_nm, e.serve_cd serve_cd, e.po_cd po_cd, vac_cnt
+		FROM emp e, comm_cd c, dept d, comm_cd g, comm_cd r, comm_cd f
+		WHERE e.po_cd = c.comm_no
+	      AND e.serve_cd = g.comm_no 
+	      AND e.dept_no = d.dept_no
+	      AND e.real_wk_cd = r.comm_no
+	      AND e.gender = f.comm_no
+          AND emp_no = #{emp_no}
+        ORDER by po_cd
+	</select>
+	
+	<!-- 인사정보 직무리스트 조회(한사람직무) -->
+	<select id="selectJobList" parameterType="int" resultType="String">
+		SELECT c.cd_ko_nm cd_ko_nm
+		FROM emp e, job j, comm_cd c
+		WHERE e.emp_no = j.emp_no
+		    AND j.job_cd = c.comm_no
+		AND e.emp_no = #{emp_no}
+	</select>
+	
+	<!-- 사원정보수정 -->
+	<update id="modifyUserAjax" parameterType="empVo">
+		UPDATE emp
+		SET profile_nm = #{profile_nm}, profile_route = #{profile_route}, pass = #{pass}, dept_no = #{dept_no}, sal = #{sal}, ko_nm = #{ko_nm}, eg_nm = #{eg_nm},
+			gender = #{gender}, per_pn = #{per_pn}, dept_pn = #{dept_pn}, per_email = #{per_email}, dept_email = #{dept_email},
+		    zipcode = #{zipcode}, addr1 = #{addr1}, addr2 = #{addr2}, hire_dt = #{hire_dt}, retire_dt = #{retire_dt},
+		    serve_cd = #{serve_cd}, po_cd = #{po_cd}
+		WHERE emp_no = #{emp_no}
+	</update>
+	
+	<!-- 사용자 수정 (직무삭제) -->
+	<delete id="modifyDelete" parameterType="int">
+		DELETE job WHERE emp_no = #{emp_no}
+	</delete>
+	
+	<!-- 사용자 수정(직무등록) -->
+	<insert id="modifyInsert" parameterType="jobVo">
+		INSERT INTO job VALUES (#{job_cd},#{emp_no})
+	</insert>
+	
+	<!-- 엑셀다운 list -->
+	<select id="selectAllEmp" resultType="empVo">
+		SELECT emp_no, d.dept_no dept_no, dept_nm, mgr_no, emp_id, pass, ko_nm, eg_nm, 
+				f.cd_ko_nm gender, birth, per_pn, dept_pn, per_email, dept_email, zipcode, 
+				addr1, addr2, hire_dt, retire_dt, sal, profile_nm, profile_route, 
+				vac_Cnt, per_info_agr_cd, ath_lv_cd, real_wk_cd,g.cd_ko_nm serve_nm, 
+				c.cd_ko_NM po_nm, r.cd_ko_nm
+		FROM emp e, comm_cd c, dept d, comm_cd g, comm_cd r, comm_cd f
+		WHERE e.po_cd = c.comm_no
+	        AND e.serve_cd = g.comm_no 
+	        AND e.dept_no = d.dept_no
+	        AND e.real_wk_cd = r.comm_no
+	        AND e.gender = f.comm_no
+	      AND e.gender = f.comm_no
+        ORDER by po_cd
+	</select>
+	
+	<!-- 사원조회 -->
+	<select id="searchPagingEmp" resultType="empVo" parameterType="pageVo">
+		SELECT *
+		FROM
+		    (SELECT ROWNUM rn, a.*
+		     FROM
+		         (SELECT e.emp_no, e.emp_id, e.ko_nm, e.eg_nm, f.cd_ko_nm gender, birth, per_pn, per_email, c.cd_ko_nm
+		          FROM emp e, comm_cd c, comm_cd f
+                  WHERE (e.po_cd = c.comm_no AND f.comm_no = e.gender) AND (ko_nm LIKE '%' || #{keyword} || '%' OR  eg_nm LIKE '%' || #{keyword} || '%')
+		          ORDER BY ko_nm
+		          ) a
+		     WHERE ROWNUM &lt;= #{page} * #{pageSize}
+		     )
+		WHERE rn BETWEEN (#{page}-1) * #{pageSize} +1 AND #{page} * #{pageSize}
+	</select>
+	
+	<!-- 사원조회수 -->
+	<select id="searchEmpCount" resultType="int" parameterType="pageVo">
+		SELECT COUNT(*)
+	  	FROM emp
+	  	WHERE ko_nm LIKE '%' || #{keyword} || '%' OR eg_nm LIKE '%' || #{keyword} || '%'
+	</select>
+	
+	<!-- 부서별chart dept_nm,count -->
+	<select id="selectChartDept" resultType="empVo">
+		SELECT dept_nm, COUNT(*) dept_cnt
+		FROM emp e, dept d
+		WHERE e.dept_no = d.dept_no AND e.po_cd != 107
+		GROUP by dept_nm
+	</select>
+	
+	<!-- 직급별chart po_nm,count -->
+  	<select id="selectChartPo" resultType="empVo">
+  		SELECT c.cd_ko_nm po_nm, COUNT(*) po_cnt
+		FROM emp e, comm_cd c
+		WHERE e.po_cd = c.comm_no AND e.po_cd != 107
+		GROUP BY cd_ko_nm
+  	</select>
+  	
+  	<!-- 성별chart job_nm,count -->
+  	<select id="selectChartGender" resultType="empVo">
+  		SELECT c.cd_ko_nm gender, COUNT(*) gender_cnt
+		FROM emp e, comm_cd c
+		WHERE e.gender = c.comm_no
+		GROUP BY cd_ko_nm
+  	</select>
+  	<!-- 재직chart serve_nm,count -->
+  	<select id="selectChartServe" resultType="empVo">
+  		SELECT c.cd_ko_nm serve_nm, COUNT(*) serve_cnt
+		FROM emp e, comm_cd c
+		WHERE e.serve_cd = c.comm_no
+		GROUP BY cd_ko_nm
+  	</select>
+  	
+  	<!-- 인사등록 -->
+  	<insert id="registEmp" parameterType="empVo">
+  		INSERT INTO emp(emp_no, emp_id, pass, dept_no, sal, ko_nm, eg_nm, birth, gender, per_pn, dept_pn, per_email, dept_email, zipcode, addr1, addr2, hire_dt, profile_nm, profile_route, vac_cnt, per_info_agr_cd, ath_lv_cd, serve_cd, po_cd, real_wk_cd)
+    		VALUES(emp_seq.nextVal, #{emp_id}, #{pass}, #{dept_no}, #{sal}, #{ko_nm}, #{eg_nm}, #{birth}, #{gender}, #{per_pn}, #{dept_pn}, #{per_email}, #{dept_email}, #{zipcode}, #{addr1}, #{addr2}, #{hire_dt}, #{profile_nm}, #{profile_route}, 0, 140, 1, #{serve_cd}, #{po_cd}, 130)
+  	</insert>
+  	
+  	<!-- 인사등록(id중복체크) -->
+  	<select id="selectEmpidCount" resultType="int" parameterType="String">
+	  	SELECT COUNT(*)
+		FROM emp
+		WHERE emp_id = #{emp_id}
+  	</select>
+  	
+  	<!-- 인사등록(emp_no찾기) -->
+  	<select id="selectEmpno" resultType="int">
+	  	SELECT MAX(emp_no) 
+	  	FROM emp
+  	</select>
+  	
+  	<!-- 인사 조직도(dept정보) -->
+	<select id="selectDept" resultType="deptVo">
+		SELECT * FROM dept WHERE dept_no != 0
+	</select>  
+	
+	<!-- 인사 조직도 -->
+	<select id="selectOrganization" resultType="empVo">
+		SELECT emp_no, d.dept_no dept_no, dept_nm, ko_nm, c.cd_ko_nm po_nm
+		FROM emp e, comm_cd c, dept d 
+		WHERE e.po_cd = c.comm_no AND e.dept_no = d.dept_no AND e.dept_no != 0
+        ORDER by po_cd
+	</select>
+		
+	<!-- 부서명 -->
+	<select id="selectDeptNm" resultType="deptVo">
+		SELECT * FROM dept
+	</select>
+	<!-- 성별 -->
+	<select id="selectGenderNm" resultType="commCdVo">
+		SELECT comm_no, cd_ko_nm
+		FROM comm_cd 
+		WHERE comm_tp_char = 'H013'
+	</select>
+	<!-- 재직코드 -->
+	<select id="selectServeNm" resultType="commCdVo">
+		SELECT comm_no, cd_ko_nm 
+		FROM comm_cd c
+		WHERE comm_tp_char = 'H002'
+	</select>
+	<!-- 직급 -->
+	<select id="selectPoNm" resultType="commCdVo">
+		SELECT comm_no, cd_ko_nm 
+		FROM comm_cd c
+		WHERE comm_tp_char = 'H001'
+	</select>
+	<!-- 직무 -->
+	<select id="selectJobNm" resultType="commCdVo">
+		SELECT comm_no, cd_ko_nm 
+		FROM comm_cd c
+		WHERE comm_tp_char = 'H003'
+	</select>
+	
+	<!-- 조직도 부서등록 -->
+	<insert id="registDept" parameterType="deptVo">
+		INSERT INTO dept(dept_no, dept_nm) VALUES ((SELECT MAX(dept_no)+1 FROM dept), #{dept_nm})
+	</insert>
+	
+	<!-- 조직도 부서삭제 -->
+	<delete id="deleteDept" parameterType="deptVo">
+		DELETE FROM dept WHERE dept_no = #{dept_no}
+	</delete>
+	
+	<!-- 조직도 부서수정 -->
+	<update id="modifyDept" parameterType="deptVo">
+		UPDATE dept SET dept_nm = #{dept_nm} WHERE dept_no = #{dept_no}
+	</update>
+	<!-- ===========================사원=========================== -->
+	
+	<!-- 마이페이지 -->
+	<select id="selectEmpDetail" resultType="empVo" parameterType="int">
+		SELECT emp_no, d.dept_no dept_no, dept_nm, mgr_no, emp_id, pass, ko_nm, eg_nm, f.cd_ko_nm gender, birth, per_pn, dept_pn, per_email, dept_email, zipcode, addr1, addr2, hire_dt, retire_dt, sal, profile_nm, profile_route, vac_Cnt, per_info_agr_cd, ath_lv_cd, real_wk_cd,g.cd_ko_nm serve_nm, c.cd_ko_NM po_nm, r.cd_ko_nm, e.serve_cd serve_cd, e.po_cd po_cd
+		FROM emp e, comm_cd c, dept d, comm_cd g, comm_cd r, comm_cd f
+		WHERE e.po_cd = c.comm_no
+	      AND e.serve_cd = g.comm_no 
+	      AND e.dept_no = d.dept_no
+	      AND e.real_wk_cd = r.comm_no
+	      AND e.gender = f.comm_no
+          AND emp_no = #{emp_no}
+        ORDER by po_cd
+	</select>
+	
+	<!-- password 확인 -->
+	<select id="selectPassCount" resultType="int" parameterType="empVo">
+		SELECT COUNT(*)
+		FROM emp
+		WHERE emp_no = #{emp_no} AND pass = #{pass}
+	</select>
+	
+	<!-- password 변경 -->
+	<update id="modifyEmp" parameterType="empVo">
+		UPDATE emp SET pass = #{pass} WHERE emp_no = #{emp_no}
+	</update>
+	
+	
+  
+</mapper>
